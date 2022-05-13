@@ -48,8 +48,10 @@
     "webpack-dev-server": "^4.7.2"
   },
   "dependencies": {
+    "@types/three": "^0.140.0",
     "es6-promise": "^4.2.8",
-    "hamburgers": "^1.2.1"
+    "hamburgers": "^1.2.1",
+    "three": "^0.140.2"
   },
   "browserslist": [
     "last 2 version",
