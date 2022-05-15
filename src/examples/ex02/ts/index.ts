@@ -1,17 +1,33 @@
-import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { AxesHelper, BoxGeometry, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 
 function main() {
   const scene = new Scene();
   const geometry = new BoxGeometry(1, 1, 1);
   const material = new MeshBasicMaterial({
-    color: 'blue'
+    color: 'red'
   })
-  const mesh = new Mesh(geometry, material);
-  scene.add(mesh);
+  const mesh1 = new Mesh(geometry, material);
+  mesh1.position.set(2, 0, 0)
+  const mesh2 = new Mesh(geometry, material);
+  const mesh3 = new Mesh(geometry, material);
+  mesh3.position.set(-2, 0, 0)
+
+  const group = new Group();
+  group.add(mesh1);
+  group.add(mesh2);
+  group.add(mesh3);
+  group.position.set(1, 0, 0);
+  group.scale.set(1, 2, 1);
+
+  scene.add(group);
+
+  const axis = new AxesHelper(5);
+  scene.add(axis);
 
   //camera
   const camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 5;
+  camera.lookAt(group.position);
   scene.add(camera);
 
   //renderer
