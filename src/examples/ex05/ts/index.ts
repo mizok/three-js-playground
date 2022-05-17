@@ -1,4 +1,6 @@
 import { AxesHelper, BoxGeometry, Clock, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { debounce } from 'lodash';
 
 function main() {
   const scene = new Scene();
@@ -38,21 +40,17 @@ function main() {
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setPixelRatio(window.devicePixelRatio);
 
-  const cursor = {
-    x: 0,
-    y: 0
-  }
+  const controls = new OrbitControls(camera, renderer.domElement)
+  controls.enableDamping = true;
 
-  window.addEventListener('mousemove', (ev) => {
-    cursor.x = (ev.clientX / window.innerWidth - 0.5) * 2
-    cursor.y = -(ev.clientY / window.innerHeight - 0.5) * 2
-  })
+  window.addEventListener('resize', debounce(() => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }, 200))
 
   const tick = () => {
-    camera.position.x = Math.sin(cursor.x * Math.PI * 2) * 2;
-    camera.position.z = Math.cos(cursor.x * Math.PI * 2) * 2;
-    camera.position.y = cursor.y * 3;
-    camera.lookAt(group.position);
+    controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(tick);
   }
