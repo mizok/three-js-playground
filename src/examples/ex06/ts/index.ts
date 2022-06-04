@@ -1,26 +1,25 @@
-import { AxesHelper, BoxGeometry, Clock, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
+import { AxesHelper, BoxGeometry, BufferAttribute, BufferGeometry, Clock, Group, Mesh, MeshBasicMaterial, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 
 function main() {
   const scene = new Scene();
-  const geometry = new BoxGeometry(1, 1, 1);
   const material = new MeshBasicMaterial({
     color: 'red',
     wireframe: true
   })
-  const mesh1 = new Mesh(geometry, material);
-  mesh1.position.set(2, 0, 0)
-  const mesh2 = new Mesh(geometry, material);
-  const mesh3 = new Mesh(geometry, material);
-  mesh3.position.set(-2, 0, 0)
+  const size = 50
+  const diameter = 5;
+  const positionArr = new Float32Array(size * 3 * 3)
+  positionArr.forEach((val, index) => {
+    positionArr[index] = Math.random() * diameter - 0.5 * diameter;
+  })
+  const positionAttribute = new BufferAttribute(positionArr, 3);
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', positionAttribute);
+  const mesh = new Mesh(geo, material);
 
-  const group = new Group();
-  group.add(mesh1);
-  group.add(mesh2);
-  group.add(mesh3);
-
-  scene.add(group);
+  scene.add(mesh);
 
   const axis = new AxesHelper(5);
   scene.add(axis);
