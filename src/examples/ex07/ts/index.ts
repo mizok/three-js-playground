@@ -41,6 +41,7 @@ function main() {
   textures.color.center.y = 0.5;
 
   textures.color.minFilter = NearestFilter;
+  textures.color.magFilter = NearestFilter;
 
 
   const geo = new BoxGeometry(1,1,1);
