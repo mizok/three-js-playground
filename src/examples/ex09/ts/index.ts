@@ -44,8 +44,7 @@ function main() {
         -(bbox.max.x  - 0.02) * 0.5,
         -(bbox.max.y - 0.02) * 0.5,
         -(bbox.max.z - 0.03) * 0.5,
-      )
-      
+      ) 
       
       const mat = new MeshNormalMaterial();
       // mat.wireframe = true;
@@ -73,11 +72,7 @@ function main() {
         scene.add(torusMesh);
       }
 
-      
   });
-
-
-
 
   // const axis = new AxesHelper(5);
   // scene.add(axis);
