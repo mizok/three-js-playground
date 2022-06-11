@@ -1,12 +1,12 @@
 import { AxesHelper,  LoadingManager,  PerspectiveCamera, Scene, TextureLoader, WebGLRenderer,Mesh,  SphereGeometry, PlaneGeometry, TorusGeometry,  Clock, DoubleSide, MeshNormalMaterial, MeshDepthMaterial, MeshLambertMaterial, AmbientLight, PointLight, Color, MeshPhongMaterial, MeshToonMaterial, NearestFilter, MeshStandardMaterial, BufferAttribute, CubeTextureLoader } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
-const envNx = require('../env-map/nx.jpg');
-const envPx = require('../env-map/px.jpg');
-const envNy = require('../env-map/ny.jpg');
-const envPy = require('../env-map/py.jpg');
-const envNz = require('../env-map/nz.jpg');
-const envPz = require('../env-map/pz.jpg');
+const envNx = require('@img/env-map/nx.jpg');
+const envPx = require('@img/env-map/px.jpg');
+const envNy = require('@img/env-map/ny.jpg');
+const envPy = require('@img/env-map/py.jpg');
+const envNz = require('@img/env-map/nz.jpg');
+const envPz = require('@img/env-map/pz.jpg');
 
 function main() {
   const scene = new Scene();

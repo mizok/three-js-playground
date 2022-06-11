@@ -1,5 +1,5 @@
 <% const fs = require('fs') %>
 
-<% fs.readdirSync('./src/examples/ex07/door-wood').forEach(textureName => { %>
-  <img src="./door-wood/<%= textureName %>">
+<% fs.readdirSync('./src/assets/images/door-wood').forEach(textureName => { %>
+  <img src="~@img/door-wood/<%= textureName %>">
   <% }) %>
