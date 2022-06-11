@@ -46,13 +46,15 @@ function main() {
 
   // const mat  = new MeshBasicMaterial({map:textures.color});
   // const mat  = new MeshNormalMaterial();
-  // mat.flatShading = true;
-  // const mat  = new MeshDepthMaterial();
-  // const mat  = new MeshLambertMaterial();
-  // const mat = new MeshPhongMaterial();
+  // mat.flatShading = true; // 把顏色變成一格一格的樣子
+  // const mat = new MeshMatchupMaterial(); // 一種需要球型漸層的材質, 不接受光源, 但是他會藉由材質來渲染得像是有受光的樣子 
+  //mat.matcap = matcapTexture;
+  // const mat  = new MeshDepthMaterial(); // 一種材質, 他會根據距離 遠近平面的距離來決定要渲染出偏白(近)或黑（遠）的顏色
+  // const mat  = new MeshLambertMaterial(); // 耗能最少的可受光材質
+  // const mat = new MeshPhongMaterial(); // 耗能比Lamber略多的可受光材質, 有反射光點的設計
   // mat.shininess = 100;
   // mat.specular = new Color('green');
-  // const mat = new MeshToonMaterial();
+  // const mat = new MeshToonMaterial(); // 卡通式的上色
   // textures.gradA.minFilter = NearestFilter;
   // textures.gradA.magFilter = NearestFilter;
   // textures.gradA.generateMipmaps = false; //節省效能

@@ -20,6 +20,8 @@
   position: absolute;
   bottom: 3%;
   right: 5%;
+  user-select: none;
+  pointer-events: none;
   &__icon{
     width: 20px;
     height: 20px;

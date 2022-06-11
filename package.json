@@ -8,7 +8,7 @@
     "build": "npx cross-env TS_NODE_PROJECT=\"tsconfig-for-webpack-config.json\" webpack --config webpack.config.ts --mode production",
     "dev": "npx cross-env TS_NODE_PROJECT=\"tsconfig-for-webpack-config.json\" webpack serve --config webpack.config.ts  --mode development",
     "deploy": "npm run build && npx gh-pages -d dist",
-    "v-deploy": "vercel --prod"
+    "v-deploy": "npm run build && vercel --prod"
   },
   "repository": {
     "type": "git",
