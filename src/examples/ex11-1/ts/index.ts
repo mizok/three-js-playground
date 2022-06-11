@@ -69,7 +69,7 @@ function main() {
   camera.rotation.x = -0.21421998888194424;
   camera.rotation.y = -1.006939485502568;
   camera.rotation.z = -0.18184877574565966;
-  camera.position.set(-7.0581927454849795,0.948799309207947,4.361128348986736);
+  camera.position.set(-7.0581927454849795,0.948799309207947,6.361128348986736);
   scene.add(camera);
 
   //renderer
