@@ -1,4 +1,4 @@
-import { AmbientLight, AxesHelper, BoxGeometry, BufferAttribute, BufferGeometry, CameraHelper, Clock, DirectionalLight, DirectionalLightHelper, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, Scene, SphereGeometry, WebGLRenderer } from 'three';
+import { AmbientLight, AxesHelper, BoxGeometry, BufferAttribute, BufferGeometry, CameraHelper, Clock, DirectionalLight, DirectionalLightHelper, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, SpotLight, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 
@@ -22,6 +22,8 @@ function main() {
   //light
   const aLight = new AmbientLight(0xffffff,0.3);
   const dLight = new DirectionalLight(0xffffff,0.5);
+  const spLight = new SpotLight(0xffffff,0.3);
+  const pLight = new PointLight(0xffffff,0.3);
 
 
   dLight.position.set(2,2,2);
@@ -30,6 +32,16 @@ function main() {
   dLight.shadow.radius  = 10;
 
   dLight.castShadow = true;
+
+  spLight.position.set(0,2,2);
+  spLight.shadow.mapSize.width = 1024;
+  spLight.shadow.mapSize.height = 1024;
+  spLight.castShadow = true;
+
+  pLight.position.set(-2,1,0);
+  pLight.castShadow = true;
+
+
 
   const dLightShadowCamera = dLight.shadow.camera;
   const dLightShadowCameraHelper = new CameraHelper(dLightShadowCamera);
@@ -43,8 +55,29 @@ function main() {
     dLightShadowCameraHelper.update();
   })
 
+  const spLightShadowCamera = spLight.shadow.camera;
+  const spLightShadowCameraHelper = new CameraHelper(spLightShadowCamera);
 
-  scene.add(aLight,dLight,dLightShadowCamera,dLightShadowCameraHelper);
+  spLightShadowCamera.near = 1;
+  spLightShadowCamera.far = 10;
+  spLightShadowCamera.fov = 10;
+  requestAnimationFrame(()=>{
+    spLightShadowCameraHelper.update();
+  })
+
+  const pLightShadowCamera = pLight.shadow.camera;
+  const pLightShadowCameraHelper = new CameraHelper(pLightShadowCamera);
+
+  pLightShadowCamera.near = 1;
+  pLightShadowCamera.far = 10;
+  requestAnimationFrame(()=>{
+    pLightShadowCameraHelper.update();
+  })
+
+
+
+
+  scene.add(aLight,dLight,spLight,pLight,dLightShadowCameraHelper,spLightShadowCameraHelper,pLightShadowCameraHelper);
 
   const axis = new AxesHelper(5);
   scene.add(axis);
