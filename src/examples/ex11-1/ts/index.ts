@@ -52,6 +52,7 @@ function main() {
   }
 
   window.addEventListener('click',launchBall)
+  window.addEventListener('touchstart',launchBall)
   
   const aLight = new AmbientLight(0xffffff,0.5);
   const pLight = new PointLight(0xffffff,0.5);
