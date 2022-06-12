@@ -18,34 +18,28 @@ function main() {
   }
 
   const textureLoader = new TextureLoader(loadingManager);
-  const textureImages = document.querySelectorAll('.source img');
-  const textureUrls = Array.prototype.slice.call(textureImages).map((ele:HTMLImageElement)=>ele.src);
-  const textures = (()=>{
-    const obj :{[key: string]: any} = {};
-    textureUrls.forEach((val:string)=>{
-      const name = val.replace(/(.*)(\/)(.*)(\.)(.*)/g,`$3`);
-      obj[name] = textureLoader.load(val);
-    })
-    return obj;
-  })()
+  const aoTexture = textureLoader.load(require('@img/door-wood/ao.jpg'));
+  const heightTexture = textureLoader.load(require('@img/door-wood/height.png'));
+  const colorTexture = textureLoader.load(require('@img/door-wood/color.jpg'));
+  const normalTexture = textureLoader.load(require('@img/door-wood/normal.jpg'));
 
-  textures.color.repeat.x = 2;
-  textures.color.repeat.y = 3;
+  colorTexture.repeat.x = 2;
+  colorTexture.repeat.y = 3;
 
-  textures.color.wrapS = RepeatWrapping;
-  textures.color.wrapT = RepeatWrapping;
-  textures.color.offset.x = 0.5;
+  colorTexture.wrapS = RepeatWrapping;
+  colorTexture.wrapT = RepeatWrapping;
+  colorTexture.offset.x = 0.5;
 
-  textures.color.rotation = Math.PI / 4;
-  textures.color.center.x = 0.5;
-  textures.color.center.y = 0.5;
+  colorTexture.rotation = Math.PI / 4;
+  colorTexture.center.x = 0.5;
+  colorTexture.center.y = 0.5;
 
-  textures.color.minFilter = NearestFilter;
-  textures.color.magFilter = NearestFilter;
+  colorTexture.minFilter = NearestFilter;
+  colorTexture.magFilter = NearestFilter;
 
 
   const geo = new BoxGeometry(1,1,1);
-  const mat = new MeshBasicMaterial({map:textures.color})
+  const mat = new MeshBasicMaterial({map:colorTexture})
   const mesh = new Mesh(geo,mat);
 
   scene.add(mesh);

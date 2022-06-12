@@ -24,16 +24,15 @@ function main() {
   }
   const cubeTextureLoader = new CubeTextureLoader(loadingManager);
   const textureLoader = new TextureLoader(loadingManager);
-  const textureImages = document.querySelectorAll('.source img');
-  const textureUrls = Array.prototype.slice.call(textureImages).map((ele:HTMLImageElement)=>ele.src);
-  const textures = (()=>{
-    const obj :{[key: string]: any} = {};
-    textureUrls.forEach((val:string)=>{
-      const name = val.replace(/(.*)(\/)(.*)(\.)(.*)/g,`$3`);
-      obj[name] = textureLoader.load(val);
-    })
-    return obj;
-  })()
+  const aoTexture = textureLoader.load(require('@img/door-wood/ao.jpg'));
+  const heightTexture = textureLoader.load(require('@img/door-wood/height.png'));
+  const colorTexture = textureLoader.load(require('@img/door-wood/color.jpg'));
+  const alphaTexture = textureLoader.load(require('@img/door-wood/opacity.jpg'));
+  const metallicTexture = textureLoader.load(require('@img/door-wood/metallic.jpg'));
+  const roughnessTexture = textureLoader.load(require('@img/door-wood/roughness.jpg'));
+  const normalTexture = textureLoader.load(require('@img/door-wood/normal.jpg'));
+  const gradATexture = textureLoader.load(require('@img/gradients/gradA.jpg'));
+  const gradBTexture = textureLoader.load(require('@img/gradients/gradB.jpg'));
 
   const envMap = cubeTextureLoader.load([
     envPx,
@@ -44,7 +43,7 @@ function main() {
     envNz
   ])
 
-  // const mat  = new MeshBasicMaterial({map:textures.color});
+  // const mat  = new MeshBasicMaterial({map:colorTexture});
   // const mat  = new MeshNormalMaterial();
   // mat.flatShading = true; // 把顏色變成一格一格的樣子
   // const mat = new MeshMatchupMaterial(); // 一種需要球型漸層的材質, 不接受光源, 但是他會藉由材質來渲染得像是有受光的樣子 
@@ -55,21 +54,21 @@ function main() {
   // mat.shininess = 100;
   // mat.specular = new Color('green');
   // const mat = new MeshToonMaterial(); // 卡通式的上色
-  // textures.gradA.minFilter = NearestFilter;
-  // textures.gradA.magFilter = NearestFilter;
-  // textures.gradA.generateMipmaps = false; //節省效能
-  // mat.gradientMap = textures.gradA;
+  // gradATexture.minFilter = NearestFilter;
+  // gradATexture.magFilter = NearestFilter;
+  // gradATexture.generateMipmaps = false; //節省效能
+  // mat.gradientMap = gradATexture;
   const mat = new MeshStandardMaterial();
   mat.metalness = 0.4;
   mat.roughness = 0.3;
-  mat.map = textures.color;
-  mat.alphaMap = textures.opacity;
-  mat.aoMap = textures.ao;
-  mat.displacementMap = textures.height;
+  mat.map = colorTexture;
+  mat.alphaMap = alphaTexture;
+  mat.aoMap = aoTexture;
+  mat.displacementMap = heightTexture;
   mat.displacementScale = 0.05;
-  mat.metalnessMap = textures.metallic;
-  mat.roughnessMap = textures.roughness;
-  mat.normalMap = textures.normal;
+  mat.metalnessMap = metallicTexture;
+  mat.roughnessMap = roughnessTexture;
+  mat.normalMap = normalTexture;
   mat.normalScale.set(0.5,0.5);
   mat.transparent = true;
 

@@ -186,7 +186,7 @@ const config = (env: any, argv: any): webpack.Configuration => {
           test: /\.(jpe?g|png|gif|svg)$/,
           type: 'asset/resource',
           generator: {
-            filename: 'assets/images/[name][ext]'
+            filename: 'assets/images/[name][hash][ext]'
           }
         },
         {
@@ -277,15 +277,15 @@ const config = (env: any, argv: any): webpack.Configuration => {
               },
               noErrorOnMissing: true,
             },
-            {
-              from: 'src/assets/images',
-              to: 'assets/images',
-              globOptions: {
-                dot: true,
-                ignore: ['**/.DS_Store', '**/.gitkeep'],
-              },
-              noErrorOnMissing: true,
-            }
+            // {
+            //   from: 'src/assets/images',
+            //   to: 'assets/images',
+            //   globOptions: {
+            //     dot: true,
+            //     ignore: ['**/.DS_Store', '**/.gitkeep'],
+            //   },
+            //   noErrorOnMissing: true,
+            // }
           ],
         }
       ),
