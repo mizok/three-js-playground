@@ -131,7 +131,7 @@ class Land{
     this.mesh = this.genMesh();
   }
   genGeometry(){
-    return new PlaneGeometry(100,100,100,100);
+    return new PlaneGeometry(150,150,200,200);
   }
   genMaterial(){
     // const gradientTexture = textureLoader.load(require('@img/gradients/gradA.jpg'));
@@ -140,8 +140,9 @@ class Land{
         texture.minFilter = NearestFilter;
         texture.magFilter = NearestFilter;
         texture.generateMipmaps = false; //節省效能
-        texture.repeat.x = 1.5;
-        texture.repeat.y = 1.5;
+        texture.repeat.x = 2;
+        texture.repeat.y = 2;
+        texture.rotation = -6;
         texture.wrapS = RepeatWrapping;
         texture.wrapT = RepeatWrapping;
       })
@@ -154,7 +155,7 @@ class Land{
       displacementMap:heightTexture,
       normalMap:normalTexture,
       aoMap:aoTexture,
-      displacementScale:6
+      displacementScale:5
     })
     return mat;
   }
@@ -276,7 +277,7 @@ class Castle{
     matSetting(colorTextureW,aoTextureW,normalTextureW,heightTextureW)
   
     const arcShape = new Shape();
-    arcShape.absarc(0, 0, this.mainRadius+2, 0, Math.PI * 2, false);
+    arcShape.absarc(0, 0, this.mainRadius+1, 0, Math.PI * 2, false);
     
     const holePath = new Path();
     holePath.absarc(0, 0, this.mainRadius, 0, Math.PI * 2, true);
@@ -297,9 +298,9 @@ class Castle{
 
     const beamShape = new Shape();
     beamShape.moveTo(0,0);
-    beamShape.lineTo(-2,5);
-    beamShape.lineTo(0,5);
-    beamShape.lineTo(2,0);
+    beamShape.lineTo(-1,8);
+    beamShape.lineTo(0,8);
+    beamShape.lineTo(1,0);
     beamShape.lineTo(0,0);
 
     const extrudeSettingsB = {
@@ -308,9 +309,40 @@ class Castle{
       bevelEnabled: true,
       curveSegments: 10
     };
-
+    const beams = new Group();
+    const beamNum = 6;
+    const beamSurroundRadius = 10
     const beamGeo = new ExtrudeGeometry(beamShape, extrudeSettingsB);
-    const beamMesh = new Mesh(beamGeo,new MeshStandardMaterial({
+    const beamPosHeight = this.pillarHeight/2 - 8;
+    beamGeo.rotateX(Math.PI/2);
+   
+
+    for(let n=0;n<beamNum;n++){
+      const beamGeo = new ExtrudeGeometry(beamShape, extrudeSettingsB);
+      const beamPosHeight = this.pillarHeight/2 - 8
+      beamGeo.rotateX(Math.PI/2);
+      beamGeo.rotateZ(n*2*Math.PI/beamNum + Math.PI/2)
+    
+      const beamMesh = new Mesh(beamGeo,new MeshStandardMaterial({
+        map:colorTextureW,
+        aoMap:aoTextureW,
+        normalMap:normalTextureW,
+        displacementMap:heightTextureW,
+        displacementBias:-0.4,
+        side:DoubleSide
+      }))
+      const theda =  n * 2* Math.PI/beamNum;
+      beamMesh.lookAt(0,beamPosHeight,0)
+      beamMesh.position.set(
+      beamSurroundRadius*Math.sin(theda),
+      beamPosHeight,
+      beamSurroundRadius*Math.cos(theda)
+      )
+      beams.add(beamMesh);
+    }
+    
+    const plateGeo = new CylinderGeometry(this.mainRadius+1,this.mainRadius+1,1,20);
+    const plateMesh = new Mesh(plateGeo,new MeshStandardMaterial({
       map:colorTextureW,
       aoMap:aoTextureW,
       normalMap:normalTextureW,
@@ -318,10 +350,11 @@ class Castle{
       displacementBias:-0.4,
       side:DoubleSide
     }))
-    beamMesh.position.set(20,this.pillarHeight/2 - 8,20)
+    plateMesh.position.set(0,this.pillarHeight/2,0)
+    
     
 
-    group.add(rinMesh,beamMesh);
+    group.add(rinMesh,beams,plateMesh);
     return group;
   }
   genBase(){
