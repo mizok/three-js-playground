@@ -33,10 +33,20 @@ const colorTexture2 = textureLoader.load(require('@img/brick/color2.jpg'));
 const colorTexture2A = textureLoader.load(require('@img/brick/color.jpg'));
 const normalTexture2 = textureLoader.load(require('@img/brick/normal.png'));
 
+const aoTexture3 = aoTexture1.clone()
+const heightTexture3 = heightTexture1.clone()
+const colorTexture3 =  colorTexture1.clone()
+const normalTexture3 =  normalTexture1.clone()
+
 const aoTextureW = textureLoader.load(require('@img/wood/ao.png'));
 const heightTextureW = textureLoader.load(require('@img/wood/height.png'));
 const colorTextureW = textureLoader.load(require('@img/wood/color.jpg'));
 const normalTextureW = textureLoader.load(require('@img/wood/normal.png'));
+
+const aoTextureR = textureLoader.load(require('@img/rock/ao.jpg'));
+const heightTextureR = textureLoader.load(require('@img/rock/height.png'));
+const colorTextureR = textureLoader.load(require('@img/rock/color.jpg'));
+const normalTextureR = textureLoader.load(require('@img/rock/normal.jpg'));
 
 function main() {
   const {scene,renderer,camera,clock,axis} = new RenderEnv();
@@ -74,7 +84,7 @@ class RenderEnv{
     const axis = new AxesHelper(5);
     const aLight = new AmbientLight(0xb9d5ff,0.3);
     const dLight = new DirectionalLight(0xb9d5ff,0.3);
-    const pLight = new PointLight(new Color('purple'),1.5)
+    const pLight = new PointLight(new Color('pink'),1.5)
     const pLightHelper = new PointLightHelper(pLight);
    
     
@@ -239,7 +249,7 @@ class Castle{
         normalMap:normalTexture2,
         normalScale:new Vector2(0.1,0.1)
       });
-      const height = (Math.random()-0.5)*(this.pillarHeight - 4);
+      const height = (Math.random()-0.5)*(this.pillarHeight - 15);
       const mesh = new Mesh(brickGeo,mat);
       const theda = Math.random() * 2 *0.03 *Math.PI + 2 * n * Math.PI/num;
       mesh.position.set(
@@ -256,7 +266,7 @@ class Castle{
   genWoodenMiddle(){
     const group = new Group();
     const extrudeSettings = {
-      amount : 1,
+      amount : 0.75,
       steps : 5,
       bevelEnabled: true,
       curveSegments: 10
@@ -298,8 +308,8 @@ class Castle{
 
     const beamShape = new Shape();
     beamShape.moveTo(0,0);
-    beamShape.lineTo(-1,8);
-    beamShape.lineTo(0,8);
+    beamShape.lineTo(-3,8);
+    beamShape.lineTo(-2,8);
     beamShape.lineTo(1,0);
     beamShape.lineTo(0,0);
 
@@ -341,7 +351,7 @@ class Castle{
       beams.add(beamMesh);
     }
     
-    const plateGeo = new CylinderGeometry(this.mainRadius+1,this.mainRadius+1,1,20);
+    const plateGeo = new CylinderGeometry(this.mainRadius+3,this.mainRadius+3,1,20);
     const plateMesh = new Mesh(plateGeo,new MeshStandardMaterial({
       map:colorTextureW,
       aoMap:aoTextureW,
@@ -357,6 +367,48 @@ class Castle{
     group.add(rinMesh,beams,plateMesh);
     return group;
   }
+  genRockMiddle(){
+    const geo = new CylinderGeometry(this.mainRadius+2,this.mainRadius+2,8,30,30);
+    const setting = (...textures:Texture[])=>{
+      textures.forEach(texture=>{
+        texture.minFilter = NearestFilter;
+        texture.magFilter = NearestFilter;
+        texture.generateMipmaps = false; //節省效能
+        texture.repeat.x = 8;
+        texture.repeat.y = 2;
+        texture.wrapS = RepeatWrapping;
+        texture.wrapT = RepeatWrapping;
+      })
+    }
+    setting(colorTexture3,aoTexture3,heightTexture3,normalTexture3)
+    const mat =  new MeshStandardMaterial({
+      map:colorTexture3,
+      aoMap:aoTexture3,
+      displacementMap:heightTexture3,
+      normalMap:normalTexture3,
+      displacementBias:-1
+    });
+    const mesh = new Mesh(geo,mat)
+    mesh.position.y = 4+ this.pillarHeight/2;
+    return mesh;
+  }
+
+  genRoof(){
+    const geo = new ConeGeometry(this.mainRadius+4,10,30,30);
+    
+    const mat =  new MeshStandardMaterial({
+      color:new Color('brown'),
+      map:colorTexture3,
+      aoMap:aoTexture3,
+      displacementMap:heightTexture3,
+      normalMap:normalTexture3,
+      displacementBias:-1
+    });
+    const mesh = new Mesh(geo,mat)
+    mesh.position.y = 13+ this.pillarHeight/2;
+    return mesh;
+  }
+
   genBase(){
     const points = [];
     const size = 5;
@@ -388,8 +440,11 @@ class Castle{
     const main = this.genBody();
     const bricks = this.genBricks();
     const base = this.genBase();
-    const middle = this.genWoodenMiddle();
-    group.add(main,bricks,base,middle);
+    const middleW = this.genWoodenMiddle();
+    const middleR = this.genRockMiddle();
+    const roof = this.genRoof()
+
+    group.add(main,bricks,base,middleW,middleR,roof);
     group.position.set(0,0,10);
     group.rotation.x = Math.PI/60;
     group.traverse(function(o) {
