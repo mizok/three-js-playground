@@ -3,15 +3,15 @@ const { resolve } = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 const TerserPlugin = require("terser-webpack-plugin");
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plugin');
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 import chalk from 'chalk';
 import * as webpack from 'webpack';
 import 'webpack-dev-server'; // dont remove this import, it's for webpack-dev-server type
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 const COMPRESS = true;
-const warn = chalk.bgYellow.black; 
+const warn = chalk.bgYellow.black;
 
-const getBaseEntry = ()=>{
+const getBaseEntry = () => {
   const baseFolder = `./src/base`;
   const entryObj: webpack.EntryObject = {
     // import es6-promise and scss util automatically
@@ -22,18 +22,18 @@ const getBaseEntry = ()=>{
   return entryObj;
 }
 
-const getExampleEntries = ()=>{
+const getExampleEntries = () => {
   const folderPath = resolve(__dirname, `./src/examples`);
   const entryObj: webpack.EntryObject = {};
   fs.readdirSync(folderPath).forEach((entryName: string) => {
-    if(!fs.lstatSync(`${folderPath}/${entryName}`).isDirectory())return;
+    if (!fs.lstatSync(`${folderPath}/${entryName}`).isDirectory()) return;
     const scriptEntryPath1 = resolve(__dirname, `${folderPath}/${entryName}/index.ts`);
     const scriptEntryPath2 = resolve(__dirname, `${folderPath}/${entryName}/ts/index.ts`);
-    const scriptEntry = fs.existsSync(scriptEntryPath1) ? scriptEntryPath1 : fs.existsSync(scriptEntryPath2)? scriptEntryPath2:undefined;
+    const scriptEntry = fs.existsSync(scriptEntryPath1) ? scriptEntryPath1 : fs.existsSync(scriptEntryPath2) ? scriptEntryPath2 : undefined;
 
     const styleSheetEntryPath1 = resolve(__dirname, `${folderPath}/${entryName}/main.scss`);
     const styleSheetEntryPath2 = resolve(__dirname, `${folderPath}/${entryName}/scss/main.scss`);
-    const styleSheetEntryPath = fs.existsSync(styleSheetEntryPath1) ? styleSheetEntryPath1 : fs.existsSync(styleSheetEntryPath2)? styleSheetEntryPath2: undefined;
+    const styleSheetEntryPath = fs.existsSync(styleSheetEntryPath1) ? styleSheetEntryPath1 : fs.existsSync(styleSheetEntryPath2) ? styleSheetEntryPath2 : undefined;
 
     entryObj[entryName] = ['es6-promise/auto', scriptEntry, './src/util/style/reset.scss', styleSheetEntryPath].filter(function (x: string | undefined) {
       return x !== undefined;
@@ -43,7 +43,7 @@ const getExampleEntries = ()=>{
   return entryObj;
 }
 
-const getBaseTemplateInstances = ()=>{
+const getBaseTemplateInstances = () => {
   const baseTemplatePath = resolve(__dirname, `./src/base/index.ejs`);
   return new HtmlWebpackPlugin({
     cache: false,
@@ -66,9 +66,9 @@ const getBaseTemplateInstances = ()=>{
 const getExampleEntryTemplateInstances = () => {
   const folderPath = resolve(__dirname, `./src/examples`);
   return fs.readdirSync(folderPath).map((entryName: string) => {
-    if(!fs.lstatSync(`${folderPath}/${entryName}`).isDirectory())return;
+    if (!fs.lstatSync(`${folderPath}/${entryName}`).isDirectory()) return;
     const ejsFilePath = resolve(folderPath, `${entryName}/index.ejs`);
-    if(!fs.existsSync(ejsFilePath)){
+    if (!fs.existsSync(ejsFilePath)) {
       const msg = warn(`WARNING: "./src/examples/${entryName}/" is an empty folder, no template files detected inside`);
       console.log(msg)
       return;
@@ -230,24 +230,29 @@ const config = (env: any, argv: any): webpack.Configuration => {
       ]
     },
     resolve: {
-      extensions:['.ts','.tsx','.js','.jsx','json'],
+      extensions: ['.ts', '.tsx', '.js', '.jsx', 'json'],
       alias: {
-        '@util':resolve(__dirname,'./src/util/'),
+        '@util': resolve(__dirname, './src/util/'),
         '@img': resolve(__dirname, './src/assets/images/'),
         '@font': resolve(__dirname, './src/assets/fonts/')
       }
     },
     optimization: {
       minimize: COMPRESS,
-      minimizer: [new TerserPlugin({
-        terserOptions: {
-          format: {
-            comments: false,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            format: {
+              comments: false,
+            },
           },
-        },
-        test: /\.js(\?.*)?$/i,
-        extractComments: false
-      })],
+          test: /\.js(\?.*)?$/i,
+          extractComments: false
+        }),
+        (() => {
+          return COMPRESS ? new CssMinimizerPlugin() : undefined
+        })()
+      ],
       splitChunks: { name: 'vendor', chunks: 'all' }
     },
     performance: {
@@ -259,9 +264,6 @@ const config = (env: any, argv: any): webpack.Configuration => {
       new webpack.DefinePlugin({
         'PROCESS.MODE': JSON.stringify(argv.mode)
       }),
-      (() => {
-        return COMPRESS ? new OptimizeCssAssetsWebpackPlugin() : undefined
-      })(),
       new MiniCssExtractPlugin({
         filename: 'css/[name].css'
       }),
