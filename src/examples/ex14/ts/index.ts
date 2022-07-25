@@ -1,19 +1,24 @@
-import { AxesHelper, BufferAttribute, BufferGeometry, Clock, PerspectiveCamera, Points, PointsMaterial, Scene, WebGLRenderer } from 'three';
+import { AdditiveBlending, AxesHelper, BufferAttribute, BufferGeometry, Clock, Color, PerspectiveCamera, Points, PointsMaterial, Scene, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 import * as dat from 'dat.gui';
 
 const pram = {
-  count: 1000,
+  count: 294900,
   pointSize: 0.01,
   branches: 3,
-  radius: 5,
+  radius: 7,
+  curveAngle: 260,
+  randomness: 0.2,
+  innerColor: '#0000ff',
+  outerColor: '#ff0000',
+  randomPower: 7
 }
 
 let env: RenderEnv;
 let points: Points;
-let geo;
-let mat;
+let geo: BufferGeometry;
+let mat: PointsMaterial;
 
 
 const gui = new dat.GUI();
@@ -21,6 +26,11 @@ gui.add(pram, 'count').min(100).max(1000000).step(10).onFinishChange(refreshGala
 gui.add(pram, 'pointSize').min(0.01).max(0.1).step(0.001).onFinishChange(refreshGalaxy)
 gui.add(pram, 'branches').min(2).max(99).step(1).onFinishChange(refreshGalaxy)
 gui.add(pram, 'radius').min(1).max(10).step(1).onFinishChange(refreshGalaxy)
+gui.add(pram, 'curveAngle').min(1).max(360).step(1).onFinishChange(refreshGalaxy)
+gui.add(pram, 'randomness').min(0).max(1).step(0.1).onFinishChange(refreshGalaxy)
+gui.add(pram, 'randomPower').min(0).max(10).step(1).onFinishChange(refreshGalaxy)
+gui.addColor(pram, 'innerColor').onFinishChange(refreshGalaxy)
+gui.addColor(pram, 'outerColor').onFinishChange(refreshGalaxy)
 
 function main() {
   const { scene, renderer, camera, clock, axis } = env = new RenderEnv();
@@ -29,6 +39,8 @@ function main() {
 
 function refreshGalaxy() {
   env.scene.remove(points);
+  geo.dispose();
+  mat.dispose();
   spawnGalaxy();
 }
 
@@ -39,25 +51,46 @@ function spawnGalaxy() {
     size: pram.pointSize,
     sizeAttenuation: true,
     depthWrite: false,
+    vertexColors: true,
+    blending: AdditiveBlending
   })
+  const innerColor = new Color(pram.innerColor);
+  const outerColor = new Color(pram.outerColor);
 
   const iteration = pram.count * 3
-  const posArr = new Float32Array(iteration)
-  for (let i = 0; i < iteration; i = i + 3) {
-    const radius = 2 * (Math.random() - 0.5) * pram.radius
-    const angle = (i / 3) * (2 * Math.PI / pram.branches);
+  const posArr = new Float32Array(iteration);
+  const colorArr = new Float32Array(iteration);
 
+
+  for (let i = 0; i < iteration; i = i + 3) {
+    const radiusRandom = Math.random();
+    const radius = radiusRandom * pram.radius
+    const angle = (i / 3) * (2 * Math.PI / pram.branches);
+    const curve = (pram.curveAngle / 360) * Math.PI * 2;
+    const randomX = Math.pow(Math.random(), pram.randomPower) * (Math.random() < 0.5 ? 1 : - 1) * pram.randomness * radius
+    const randomY = Math.pow(Math.random(), pram.randomPower) * (Math.random() < 0.5 ? 1 : - 1) * pram.randomness * radius
+    const randomZ = Math.pow(Math.random(), pram.randomPower) * (Math.random() < 0.5 ? 1 : - 1) * pram.randomness * radius
+
+    const color = innerColor.clone().lerp(outerColor, Math.abs(radiusRandom))
     //x
-    posArr[i] = radius * Math.cos(angle);
+    posArr[i] = radius * Math.cos(angle - Math.abs(radius) * curve) + randomX;
     //y
-    posArr[i + 1] = radius * Math.sin(angle);
+    posArr[i + 1] = radius * Math.sin(angle - Math.abs(radius) * curve) + randomY;
     //z
-    posArr[i + 2] = 0;
+    posArr[i + 2] = randomZ;
+
+
+    colorArr[i] = color.r
+    colorArr[i + 1] = color.g
+    colorArr[i + 2] = color.b
   }
 
 
+
   const posAttribute = new BufferAttribute(posArr, 3);
+  const colorAttribute = new BufferAttribute(colorArr, 3);
   geo.setAttribute('position', posAttribute);
+  geo.setAttribute('color', colorAttribute);
   points = new Points(geo, mat);
   env.scene.add(points);
 }
