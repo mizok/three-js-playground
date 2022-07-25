@@ -12,6 +12,8 @@ const pram = {
 
 let env: RenderEnv;
 let points: Points;
+let geo;
+let mat;
 
 
 const gui = new dat.GUI();
@@ -32,8 +34,8 @@ function refreshGalaxy() {
 
 
 function spawnGalaxy() {
-  const geo = new BufferGeometry();
-  const mat = new PointsMaterial({
+  geo = new BufferGeometry();
+  mat = new PointsMaterial({
     size: pram.pointSize,
     sizeAttenuation: true,
     depthWrite: false,
