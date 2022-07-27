@@ -1,32 +1,88 @@
-import { AmbientLight, AxesHelper, Clock, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera, PointLight, Raycaster, Scene, SphereGeometry, Vector3, WebGLRenderer } from 'three';
+import { AmbientLight, AxesHelper, Clock, Color, DirectionalLight, Mesh, MeshStandardMaterial, PerspectiveCamera, PointLight, Raycaster, Scene, SphereGeometry, Vector2, Vector3, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 
 function main() {
-  const { scene, renderer, camera, clock, axis } = new RenderEnv();
-  const geo0 = new SphereGeometry(1, 100, 100);
+  let env;
+  const { scene, renderer, camera, clock, axis, mouse } = env = new RenderEnv();
+  const geo0 = new SphereGeometry(0.5, 100, 100);
   const geo1 = geo0.clone();
   const geo2 = geo0.clone();
 
   const mat = new MeshStandardMaterial({ color: 0xff0000 })
   const mesh0 = new Mesh(geo0, mat);
-  const mesh1 = new Mesh(geo1, mat);
-  const mesh2 = new Mesh(geo2, mat);
-  mesh0.position.set(-3, 0, 0)
-  mesh2.position.set(3, 0, 0)
+  const mesh1 = new Mesh(geo1, mat.clone());
+  const mesh2 = new Mesh(geo2, mat.clone());
+  mesh0.position.set(-2, 0, 0)
+  mesh2.position.set(2, 0, 0)
 
   scene.add(mesh0, mesh1, mesh2);
 
-  const rayCasterOrigin = new Vector3(-6, 0, 0)
-  const rayCasterDirection = new Vector3(10, 0, 0).normalize();
+  const rayTest = () => {
+    const rayCasterOrigin = new Vector3(-3, 0, 0)
+    const rayCasterDirection = new Vector3(10, 0, 0).normalize();
+    const rayCaster = new Raycaster(rayCasterOrigin, rayCasterDirection);
+    const intersects = rayCaster.intersectObjects([mesh0, mesh1, mesh2]);
 
-  const rayCaster = new Raycaster(rayCasterOrigin, rayCasterDirection);
+    [mesh0, mesh1, mesh2].forEach((o) => {
+      if (o instanceof Mesh) {
+        o.material.color = new Color('red')
+      }
+    })
 
-  const intersect = rayCaster.intersectObject(mesh2)
+    intersects.forEach((o) => {
 
-  const intersects = rayCaster.intersectObjects([mesh0, mesh1, mesh2])
+      if (o.object instanceof Mesh) {
+        o.object.material.color = new Color('green')
+      }
+    })
+  }
 
-  console.log(intersect, intersects)
+  let intersectPool: any = null
+
+  const rayMouseTest = () => {
+    const rayCaster = new Raycaster()
+    rayCaster.setFromCamera(mouse, camera);
+    const targets = [mesh0, mesh1, mesh2]
+    const intersects = rayCaster.intersectObjects(targets);
+    targets.forEach((o) => {
+      if (o instanceof Mesh) {
+        o.material.color = new Color('red')
+      }
+    })
+
+    intersects.forEach((o) => {
+      if (o.object instanceof Mesh) {
+        o.object.material.color = new Color('green')
+      }
+    })
+
+    if (intersects.length) {
+      if (intersectPool === null) {
+        console.log('mousein')
+      }
+      intersectPool = intersects[0]
+    }
+    else {
+      if (intersectPool !== null) {
+        console.log('mouseout')
+      }
+      intersectPool = null
+    }
+  }
+
+  env.frameListener = (time) => {
+    rayMouseTest();
+    mesh0.position.setY(Math.sin(time));
+    mesh1.position.setY(Math.sin(time * 2));
+    mesh2.position.setY(Math.sin(time * 3));
+    // rayTest();
+    rayMouseTest();
+
+
+  }
+
+
 
 }
 
@@ -36,6 +92,8 @@ class RenderEnv {
   camera: PerspectiveCamera;
   renderer: WebGLRenderer;
   clock: Clock;
+  mouse: Vector2;
+  frameListener: (time: number) => void = (time) => { };
   constructor() {
     this.init();
   }
@@ -59,7 +117,15 @@ class RenderEnv {
 
     dLight.position.set(1, 1, 1)
 
-    scene.add(camera, axis, aLight, dLight)
+    scene.add(camera, axis, aLight, dLight);
+
+    const mouse = new Vector2()
+
+    renderer.domElement.addEventListener('mousemove', (e: MouseEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = 2 * ((e.clientX - rect.left) / rect.width) - 1;
+      mouse.y = -2 * ((e.clientY - rect.top) / rect.height) + 1;
+    }, false)
 
 
     document.body.appendChild(renderer.domElement);
@@ -78,6 +144,7 @@ class RenderEnv {
 
 
     const tick = () => {
+      this.frameListener(clock.getElapsedTime());
       controls.update();
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
@@ -85,7 +152,7 @@ class RenderEnv {
 
     tick();
 
-    return { scene, renderer, camera, clock, axis };
+    return { scene, renderer, camera, clock, axis, mouse };
   }
 }
 
