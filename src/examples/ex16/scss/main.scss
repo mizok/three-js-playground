@@ -1,0 +1,28 @@
+@import '@util/style/main';
+
+
+html,body{
+    background-color: #000;
+    height: 100%;
+    overflow: auto;
+}
+
+body>section{
+    height: 100%;
+    position: relative;
+    z-index: 3;
+    color:white;
+    display: flex;
+    align-items: center;
+    padding-left: 30%;
+    font-size: 60px;
+}
+
+body>canvas{
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    top: 0;
+    pointer-events: none;
+}
