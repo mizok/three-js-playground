@@ -1,4 +1,4 @@
-import { AxesHelper,  LoadingManager,  PerspectiveCamera, Scene, TextureLoader, WebGLRenderer,Mesh,  SphereGeometry, PlaneGeometry, TorusGeometry,  Clock, DoubleSide, MeshNormalMaterial, MeshDepthMaterial, MeshLambertMaterial, AmbientLight, PointLight, Color, MeshPhongMaterial, MeshToonMaterial, NearestFilter, MeshStandardMaterial, BufferAttribute, CubeTextureLoader } from 'three';
+import { AxesHelper, LoadingManager, PerspectiveCamera, Scene, TextureLoader, WebGLRenderer, Mesh, SphereGeometry, PlaneGeometry, TorusGeometry, Clock, DoubleSide, MeshNormalMaterial, MeshDepthMaterial, MeshLambertMaterial, AmbientLight, PointLight, Color, MeshPhongMaterial, MeshToonMaterial, NearestFilter, MeshStandardMaterial, BufferAttribute, CubeTextureLoader } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 const envNx = require('@img/env-map/nx.jpg');
@@ -10,16 +10,16 @@ const envPz = require('@img/env-map/pz.jpg');
 
 function main() {
   const scene = new Scene();
-  
+
   const loadingManager = new LoadingManager();
 
-  loadingManager.onStart = ()=>{
+  loadingManager.onStart = () => {
     console.log('texture load start')
   }
-  loadingManager.onLoad = ()=>{
+  loadingManager.onLoad = () => {
     console.log('texture loaded')
   }
-  loadingManager.onError = ()=>{
+  loadingManager.onError = () => {
     console.log('texture load error')
   }
   const cubeTextureLoader = new CubeTextureLoader(loadingManager);
@@ -46,7 +46,7 @@ function main() {
   // const mat  = new MeshBasicMaterial({map:colorTexture});
   // const mat  = new MeshNormalMaterial();
   // mat.flatShading = true; // 把顏色變成一格一格的樣子
-  // const mat = new MeshMatchupMaterial(); // 一種需要球型漸層的材質, 不接受光源, 但是他會藉由材質來渲染得像是有受光的樣子 
+  // const mat = new MeshMatcapMaterial(); // 一種需要球型漸層的材質, 不接受光源, 但是他會藉由材質來渲染得像是有受光的樣子 
   //mat.matcap = matcapTexture;
   // const mat  = new MeshDepthMaterial(); // 一種材質, 他會根據距離 遠近平面的距離來決定要渲染出偏白(近)或黑（遠）的顏色
   // const mat  = new MeshLambertMaterial(); // 耗能最少的可受光材質
@@ -69,7 +69,7 @@ function main() {
   mat.metalnessMap = metallicTexture;
   mat.roughnessMap = roughnessTexture;
   mat.normalMap = normalTexture;
-  mat.normalScale.set(0.5,0.5);
+  mat.normalScale.set(0.5, 0.5);
   mat.transparent = true;
 
   const mat2 = new MeshStandardMaterial();
@@ -78,33 +78,33 @@ function main() {
   mat2.envMap = envMap;
 
   const sphere = new Mesh(
-    new SphereGeometry(0.5,16,16),
+    new SphereGeometry(0.5, 16, 16),
     mat2
   )
 
   sphere.position.x = -1.5;
 
   const plane = new Mesh(
-    new PlaneGeometry(1,1,50,50),
+    new PlaneGeometry(1, 1, 50, 50),
     mat
   )
 
   plane.material.side = DoubleSide;
-  plane.geometry.setAttribute('uv2',new BufferAttribute(plane.geometry.attributes.uv.array,2))
-  
+  plane.geometry.setAttribute('uv2', new BufferAttribute(plane.geometry.attributes.uv.array, 2))
+
 
   const torus = new Mesh(
-    new TorusGeometry(0.3,0.2,16,32),
+    new TorusGeometry(0.3, 0.2, 16, 32),
     mat2
   )
 
   torus.position.x = 1.5;
 
-  scene.add(sphere,plane,torus);
+  scene.add(sphere, plane, torus);
 
   const alight = new AmbientLight();
   scene.add(alight);
-  const light = new PointLight(new Color('white'),1);
+  const light = new PointLight(new Color('white'), 1);
   light.position.x = 1;
   light.position.y = 3;
   light.position.z = 5;
