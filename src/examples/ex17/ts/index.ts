@@ -1,4 +1,4 @@
-import { AmbientLight, AxesHelper, BoxGeometry, Clock, CubeTextureLoader, DirectionalLight, DoubleSide, Mesh, MeshMatcapMaterial, MeshPhongMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer } from 'three';
+import { AmbientLight, AxesHelper, BoxGeometry, Clock, CubeTextureLoader, DirectionalLight, DoubleSide, Mesh, MeshMatcapMaterial, MeshPhongMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 import { Body, Box, ContactMaterial, Material, Sphere, Vec3, World } from 'cannon-es';
@@ -15,16 +15,20 @@ var obj = {
     createBall(Math.random(), pos)
   },
   addBox: function () {
+    const size = new Vec3(
+      Math.random(),
+      Math.random(),
+      Math.random()
+    )
     const pos = new Vec3(
       (Math.random() - 0.5) * 10,
       Math.random() * 10,
       (Math.random() - 0.5) * 10,
     )
-    createBox(new Vec3(
-      Math.random() * 5,
-      Math.random() * 5,
-      Math.random() * 5
-    ), pos)
+    if (pos.y < size.y / 2) {
+      pos.y = size.y / 2
+    }
+    createBox(size, pos)
   }
 };
 gui.add(obj, "addBall").name("addBall");
@@ -121,7 +125,7 @@ const cbMat = cbLoader.load([
 const defaultMat = new Material('default');
 const contactMaterial = new ContactMaterial(defaultMat, defaultMat, {
   friction: 0.2,
-  restitution: 0.5
+  restitution: 0.3
 })
 let env: RenderEnv;
 const { scene, renderer, camera, clock, axis, world } = env = new RenderEnv();
@@ -129,7 +133,9 @@ world.addContactMaterial(contactMaterial);
 const objectToUpdate: { body: Body, mesh: Mesh }[] = []
 
 function createBall(ballRadius = 0.4, position = new Vec3(0, 10, 0)) {
-
+  if (position.y < ballRadius) {
+    position.y = ballRadius;
+  }
   const ballGeo = new SphereGeometry(ballRadius, 20, 20);
   const ballMat = new MeshStandardMaterial({
     envMap: cbMat,
@@ -152,7 +158,7 @@ function createBall(ballRadius = 0.4, position = new Vec3(0, 10, 0)) {
 }
 
 function createBox(boxSize = new Vec3(), position = new Vec3(0, 10, 0)) {
-  const boxGeo = new BoxGeometry(boxSize.x, boxSize.y, boxSize.z, 20, 20, 20);
+  const boxGeo = new BoxGeometry(boxSize.x * 2, boxSize.y * 2, boxSize.z * 2, 20, 20, 20);
   const boxMat = new MeshStandardMaterial({
     envMap: cbMat,
     color: 0xffffff,
@@ -204,8 +210,10 @@ function main() {
     pvTime = time;
     world.step(1 / fps, dt, 3);
     for (const o of objectToUpdate) {
-      const ballPos = Object.assign(new Vector3(), o.body.position);
-      o.mesh.position.copy(ballPos);
+      const pos = Object.assign(new Vector3(), o.body.position);
+      const rotation = Object.assign(new Quaternion(), o.body.quaternion);
+      o.mesh.position.copy(pos);
+      o.mesh.quaternion.copy(rotation);
     }
   }
 }
