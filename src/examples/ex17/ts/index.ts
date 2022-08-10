@@ -1,38 +1,25 @@
 import { AmbientLight, AxesHelper, BoxGeometry, Clock, CubeTextureLoader, DirectionalLight, DoubleSide, Mesh, MeshMatcapMaterial, MeshPhongMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
-import { Body, Box, ContactMaterial, Material, Sphere, Vec3, World } from 'cannon-es';
+import { Body, Box, ContactEquation, ContactMaterial, Material, SAPBroadphase, Sphere, Vec3, World } from 'cannon-es';
 import { GUI } from 'dat.gui'
+const hitSound = require('@sound/hit.mp3')
+const hit = new Audio(hitSound);
+const playHit = (ev: any) => {
 
-const gui = new GUI();
-var obj = {
-  addBall: function () {
-    const pos = new Vec3(
-      (Math.random() - 0.5) * 10,
-      Math.random() * 10,
-      (Math.random() - 0.5) * 10,
-    )
-    createBall(Math.random(), pos)
-  },
-  addBox: function () {
-    const size = new Vec3(
-      Math.random(),
-      Math.random(),
-      Math.random()
-    )
-    const pos = new Vec3(
-      (Math.random() - 0.5) * 10,
-      Math.random() * 10,
-      (Math.random() - 0.5) * 10,
-    )
-    if (pos.y < size.y / 2) {
-      pos.y = size.y / 2
+  const contact = ev?.contact;
+  if (contact instanceof ContactEquation) {
+    const impact = contact.getImpactVelocityAlongNormal();
+    if (impact > 1.5) {
+      hit.volume = Math.random();
+      hit.currentTime = 0;
+      hit.play();
     }
-    createBox(size, pos)
+
   }
-};
-gui.add(obj, "addBall").name("addBall");
-gui.add(obj, "addBox").name("addBox");
+
+}
+
 
 class RenderEnv {
   scene: Scene;
@@ -52,7 +39,9 @@ class RenderEnv {
   getSceneRenderReady() {
     const world = new World({
       gravity: new Vec3(0, -9.82, 0),
+      allowSleep: true
     })
+    world.broadphase = new SAPBroadphase(world)
     const clock = new Clock();
     const scene = new Scene();
     const renderer = new WebGLRenderer({
@@ -132,18 +121,62 @@ const { scene, renderer, camera, clock, axis, world } = env = new RenderEnv();
 world.addContactMaterial(contactMaterial);
 const objectToUpdate: { body: Body, mesh: Mesh }[] = []
 
+
+const gui = new GUI();
+var obj = {
+  addBall: function () {
+    const pos = new Vec3(
+      (Math.random() - 0.5) * 10,
+      Math.random() * 10,
+      (Math.random() - 0.5) * 10,
+    )
+    createBall(Math.random(), pos)
+  },
+  addBox: function () {
+    const size = new Vec3(
+      Math.random(),
+      Math.random(),
+      Math.random()
+    )
+    const pos = new Vec3(
+      (Math.random() - 0.5) * 10,
+      Math.random() * 10,
+      (Math.random() - 0.5) * 10,
+    )
+    if (pos.y < size.y / 2) {
+      pos.y = size.y / 2
+    }
+    createBox(size, pos)
+  },
+  reset: () => {
+    for (const obj of objectToUpdate) {
+      obj.body.removeEventListener('collide', playHit);
+      world.removeBody(obj.body)
+      scene.remove(obj.mesh)
+    }
+    objectToUpdate.length = 0;
+  }
+};
+gui.add(obj, "addBall").name("addBall");
+gui.add(obj, "addBox").name("addBox");
+gui.add(obj, "reset").name("reset");
+
+
+const ballGeo = new SphereGeometry(1, 20, 20);
+const ballMat = new MeshStandardMaterial({
+  envMap: cbMat,
+  color: 0xffffff,
+  metalness: 0.3,
+  roughness: 0.4
+})
+
 function createBall(ballRadius = 0.4, position = new Vec3(0, 10, 0)) {
   if (position.y < ballRadius) {
     position.y = ballRadius;
   }
-  const ballGeo = new SphereGeometry(ballRadius, 20, 20);
-  const ballMat = new MeshStandardMaterial({
-    envMap: cbMat,
-    color: 0xffffff,
-    metalness: 0.3,
-    roughness: 0.4
-  })
+
   const ballMesh = new Mesh(ballGeo, ballMat)
+  ballMesh.scale.set(ballRadius, ballRadius, ballRadius)
   const ballShape = new Sphere(ballRadius);
   const ballBody = new Body({
     position: position,
@@ -151,21 +184,25 @@ function createBall(ballRadius = 0.4, position = new Vec3(0, 10, 0)) {
     shape: ballShape,
     material: defaultMat
   })
+  ballBody.addEventListener('collide', playHit)
   ballMesh.castShadow = true;
   world.addBody(ballBody);
   scene.add(ballMesh);
   objectToUpdate.push({ body: ballBody, mesh: ballMesh });
 }
 
+const boxGeo = new BoxGeometry(1, 1, 1, 20, 20, 20);
+const boxMat = new MeshStandardMaterial({
+  envMap: cbMat,
+  color: 0xffffff,
+  metalness: 0.3,
+  roughness: 0.4
+})
+
 function createBox(boxSize = new Vec3(), position = new Vec3(0, 10, 0)) {
-  const boxGeo = new BoxGeometry(boxSize.x * 2, boxSize.y * 2, boxSize.z * 2, 20, 20, 20);
-  const boxMat = new MeshStandardMaterial({
-    envMap: cbMat,
-    color: 0xffffff,
-    metalness: 0.3,
-    roughness: 0.4
-  })
-  const boxMesh = new Mesh(boxGeo, boxMat)
+
+  const boxMesh = new Mesh(boxGeo, boxMat);
+  boxMesh.scale.set(boxSize.x * 2, boxSize.y * 2, boxSize.z * 2);
   const boxShape = new Box(boxSize);
   const boxBody = new Body({
     position: position,
@@ -173,6 +210,7 @@ function createBox(boxSize = new Vec3(), position = new Vec3(0, 10, 0)) {
     shape: boxShape,
     material: defaultMat
   })
+  boxBody.addEventListener('collide', playHit)
   boxMesh.castShadow = true;
   world.addBody(boxBody);
   scene.add(boxMesh);

@@ -190,6 +190,13 @@ const config = (env: any, argv: any): webpack.Configuration => {
           }
         },
         {
+          test: /\.(mp3|wav)$/,
+          type: 'asset/resource',
+          generator: {
+            filename: 'assets/sound/[name][hash][ext]'
+          }
+        },
+        {
           test: /\.(sass|scss|css)$/,
           use: [
             {
@@ -234,7 +241,9 @@ const config = (env: any, argv: any): webpack.Configuration => {
       alias: {
         '@util': resolve(__dirname, './src/util/'),
         '@img': resolve(__dirname, './src/assets/images/'),
-        '@font': resolve(__dirname, './src/assets/fonts/')
+        '@font': resolve(__dirname, './src/assets/fonts/'),
+        '@sound': resolve(__dirname, './src/assets/sound/'),
+
       }
     },
     optimization: {
