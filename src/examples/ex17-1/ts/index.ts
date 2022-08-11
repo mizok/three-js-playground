@@ -1,12 +1,12 @@
-import { AmbientLight, AxesHelper, BoxGeometry, Clock, CubeTextureLoader, DirectionalLight, DoubleSide, Mesh, MeshMatcapMaterial, MeshPhongMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion } from 'three';
+import { AmbientLight, AxesHelper, BoxGeometry, Clock, CubeTextureLoader, DirectionalLight, DoubleSide, Mesh, MeshMatcapMaterial, MeshPhongMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion, Fog, Color, SpotLight, PointLightHelper, Group, CylinderGeometry } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
-import { Body, Box, ContactEquation, ContactMaterial, Material, SAPBroadphase, Sphere, Vec3, World } from 'cannon-es';
+import { Body, Box, ContactEquation, ContactMaterial, Cylinder, Material, SAPBroadphase, Sphere, Vec3, World } from 'cannon-es';
 import { GUI } from 'dat.gui'
+import { CSG } from 'three-csg-ts';
 const hitSound = require('@sound/hit.mp3')
 const hit = new Audio(hitSound);
 const playHit = (ev: any) => {
-
   const contact = ev?.contact;
   if (contact instanceof ContactEquation) {
     const impact = contact.getImpactVelocityAlongNormal();
@@ -26,6 +26,7 @@ class RenderEnv {
   renderer: WebGLRenderer;
   clock: Clock;
   world: World;
+  clearColor: Color = new Color(0x333333);
   frameListener: (time: number) => void = (time: number) => { }
   constructor() {
     this.init();
@@ -50,19 +51,21 @@ class RenderEnv {
     camera.position.set(-4, 2, -2)
     const axis = new AxesHelper(5);
 
-    const aLight = new AmbientLight(0xffffff, 0.3);
+    const aLight = new AmbientLight(0xffffff, 0.5);
     const pLight = new PointLight(0xffffff, 0.5);
-    pLight.position.set(3, 3, 3);
+    const pLightHelper = new PointLightHelper(pLight);
+    pLight.position.set(4, 4, 4);
     pLight.castShadow = true;
     pLight.shadow.mapSize.width = 1024;
     pLight.shadow.mapSize.height = 1024;
     pLight.shadow.radius = 5;
 
-    scene.add(camera, axis, aLight, pLight)
-
+    scene.add(camera, axis, aLight, pLight, pLightHelper)
+    const fog = new Fog(this.clearColor, 1, 30);
+    scene.fog = fog;
 
     document.body.appendChild(renderer.domElement);
-    renderer.setClearColor(0x000000, 0) // 把背景色設置為透明
+    renderer.setClearColor(this.clearColor, 1)
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
@@ -91,23 +94,6 @@ class RenderEnv {
   }
 }
 
-const cbLoader = new CubeTextureLoader();
-
-const envNx = require('@img/env-map/nx.jpg');
-const envPx = require('@img/env-map/px.jpg');
-const envNy = require('@img/env-map/ny.jpg');
-const envPy = require('@img/env-map/py.jpg');
-const envNz = require('@img/env-map/nz.jpg');
-const envPz = require('@img/env-map/pz.jpg');
-
-const cbMat = cbLoader.load([
-  envPx,
-  envNx,
-  envPy,
-  envNy,
-  envPz,
-  envNz
-])
 
 const defaultMat = new Material('default');
 const contactMaterial = new ContactMaterial(defaultMat, defaultMat, {
@@ -130,22 +116,6 @@ var obj = {
     )
     createBall(Math.random(), pos)
   },
-  addBox: function () {
-    const size = new Vec3(
-      Math.random(),
-      Math.random(),
-      Math.random()
-    )
-    const pos = new Vec3(
-      (Math.random() - 0.5) * 10,
-      Math.random() * 10,
-      (Math.random() - 0.5) * 10,
-    )
-    if (pos.y < size.y / 2) {
-      pos.y = size.y / 2
-    }
-    createBox(size, pos)
-  },
   reset: () => {
     for (const obj of objectToUpdate) {
       obj.body.removeEventListener('collide', playHit);
@@ -156,24 +126,29 @@ var obj = {
   }
 };
 gui.add(obj, "addBall").name("addBall");
-gui.add(obj, "addBox").name("addBox");
 gui.add(obj, "reset").name("reset");
 
 
 const ballGeo = new SphereGeometry(1, 20, 20);
-const ballMat = new MeshStandardMaterial({
-  envMap: cbMat,
+
+
+const defaultMaterial = new MeshStandardMaterial({
   color: 0xffffff,
-  metalness: 0.3,
-  roughness: 0.4
+  roughness: 0.8,
 })
+const nullMaterial = new MeshStandardMaterial({
+  color: 0xffffff,
+  transparent: true,
+  opacity: 0
+})
+
 
 function createBall(ballRadius = 0.4, position = new Vec3(0, 10, 0)) {
   if (position.y < ballRadius) {
     position.y = ballRadius;
   }
 
-  const ballMesh = new Mesh(ballGeo, ballMat)
+  const ballMesh = new Mesh(ballGeo, defaultMaterial)
   ballMesh.scale.set(ballRadius, ballRadius, ballRadius)
   const ballShape = new Sphere(ballRadius);
   const ballBody = new Body({
@@ -189,40 +164,11 @@ function createBall(ballRadius = 0.4, position = new Vec3(0, 10, 0)) {
   objectToUpdate.push({ body: ballBody, mesh: ballMesh });
 }
 
-const boxGeo = new BoxGeometry(1, 1, 1, 20, 20, 20);
-const boxMat = new MeshStandardMaterial({
-  envMap: cbMat,
-  color: 0xffffff,
-  metalness: 0.3,
-  roughness: 0.4
-})
-
-function createBox(boxSize = new Vec3(), position = new Vec3(0, 10, 0)) {
-
-  const boxMesh = new Mesh(boxGeo, boxMat);
-  boxMesh.scale.set(boxSize.x * 2, boxSize.y * 2, boxSize.z * 2);
-  const boxShape = new Box(boxSize);
-  const boxBody = new Body({
-    position: position,
-    mass: 1,
-    shape: boxShape,
-    material: defaultMat
-  })
-  boxBody.addEventListener('collide', playHit)
-  boxMesh.castShadow = true;
-  world.addBody(boxBody);
-  scene.add(boxMesh);
-  objectToUpdate.push({ body: boxBody, mesh: boxMesh });
-}
-
-
-function main() {
-
-  const planeGeo = new PlaneGeometry(10, 10, 20, 20);
+function spawnPlane() {
+  const planeGeo = new PlaneGeometry(80, 80, 20, 20);
   const planeMat = new MeshStandardMaterial({
-    color: 0xeeeeee,
-    metalness: 0.3,
-    roughness: 0.6,
+    color: 0xffffff,
+    roughness: 0.75,
     side: DoubleSide
   })
   const planeMesh = new Mesh(planeGeo, planeMat)
@@ -236,9 +182,20 @@ function main() {
   world.addBody(planeBody);
   planeMesh.lookAt(0, 1, 0);
   planeMesh.receiveShadow = true;
-
   scene.add(planeMesh);
+}
 
+function spawnCannon() {
+  const cannon = new Cannon();
+  scene.add(cannon.body)
+}
+
+function main() {
+  spawnPlane();
+  spawnCannon();
+
+
+  // tick
   let pvTime = 0;
   env.frameListener = (time: number) => {
     const fps = 60;
@@ -251,6 +208,123 @@ function main() {
       o.mesh.position.copy(pos);
       o.mesh.quaternion.copy(rotation);
     }
+  }
+}
+
+
+class Cannon {
+  body: Group = new Group()
+  constructor() {
+    this.init();
+  }
+  init() {
+    this.initBarrel();
+    this.initTires();
+    this.body.rotateY(Math.PI / 4);
+    this.body.position.set(-4, 0, -4)
+  }
+
+  initBarrel() {
+    const radius = 1;
+    const height = 3;
+    const bottomGeo = new SphereGeometry(radius, 40, 40);
+    bottomGeo.translate(0, 0, 0)
+    const barrelBottom = new Mesh(
+      bottomGeo,
+      defaultMaterial
+    )
+    const barrelBody = (() => {
+      const thickness = 0.15;
+
+      const rate = 0.75;
+      const fixer = 1.0035;
+      const outerGeo = new CylinderGeometry(radius * rate, radius * fixer, height, 40, 20);
+      const innerGeo = new CylinderGeometry((radius - thickness) * rate, (radius - thickness) * fixer, height, 40, 20);
+
+      outerGeo.translate(0, height / 2, 0);
+      innerGeo.translate(0, height / 2, 0);
+
+      const outer = new Mesh(
+        outerGeo,
+        defaultMaterial
+      )
+      const inner = new Mesh(
+        innerGeo,
+        defaultMaterial
+      )
+
+      const body = CSG.subtract(outer, inner);
+      return body;
+    })()
+
+    const barrel = CSG.union(barrelBottom, barrelBody);
+    barrel.position.setY(radius);
+    barrel.rotation.set(Math.PI / 3, 0, 0);
+
+    this.body.add(barrel)
+  }
+
+  initTires() {
+    const genBeam = (diameter: number, rotation: number, thickness: number) => {
+      const beamGeo = new BoxGeometry(thickness, diameter, thickness);
+      beamGeo.rotateZ(Math.PI / 2 + rotation)
+      beamGeo.translate(0, diameter / 2, 0);
+
+      const beam = new Mesh(
+        beamGeo,
+        defaultMaterial
+      )
+      beam.castShadow = true;
+      return beam;
+    }
+    const genBeams = (diameter: number, num: number, thickness: number) => {
+      const beams = [];
+      for (let i = 0; i < num; i++) {
+        const beam = genBeam(diameter, i * Math.PI / (num - 1), thickness);
+        beams.push(beam)
+      }
+      return beams;
+    }
+    const genFrame = (radius: number, thickness: number) => {
+      const outerGeo = new CylinderGeometry(radius, radius, thickness, 30, 30);
+      const innerGeo = new CylinderGeometry((radius - thickness), (radius - thickness), thickness, 30, 30);
+
+
+      outerGeo.rotateX(Math.PI / 2);
+      outerGeo.translate(0, radius, 0);
+      innerGeo.rotateX(Math.PI / 2);
+      innerGeo.translate(0, radius, 0);
+
+      const outer = new Mesh(
+        outerGeo,
+        defaultMaterial
+      )
+      const inner = new Mesh(
+        innerGeo,
+        defaultMaterial
+      )
+
+      const frame = CSG.subtract(outer, inner);
+
+      return frame;
+    }
+
+    const tires = ((radius = 1, thickness = 0.1, beamNum = 6) => {
+      const tires = new Group();
+      const tireL = new Group();
+      const beams = genBeams(radius * 2, beamNum, thickness);
+      const frame = genFrame(radius, thickness)
+      tireL.add(...beams, frame);
+      const tireR = tireL.clone();
+      tireL.position.setZ(-1);
+      tireR.position.setZ(1);
+
+      tires.add(tireL, tireR);
+      tires.rotateY(Math.PI / 2);
+      return tires;
+    })()
+
+    this.body.add(tires)
   }
 }
 

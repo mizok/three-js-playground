@@ -59,7 +59,8 @@
     "gsap": "^3.10.4",
     "hamburgers": "^1.2.1",
     "lodash": "^4.17.21",
-    "three": "^0.140.2"
+    "three": "^0.140.2",
+    "three-csg-ts": "^3.1.10"
   },
   "browserslist": [
     "last 2 version",
