@@ -64,7 +64,7 @@ function initIframeOnLoad() {
 
 function hashHandler() {
   const hash = location.hash;
-  if(!hash)return;
+  if (!hash) return;
   const content = document.querySelector('iframe#playground-content');
   const hashID = hash.replace(/^#(.*)/g, `$1`);
   const loading = document.querySelector('#loading');
