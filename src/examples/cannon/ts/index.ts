@@ -147,7 +147,7 @@ const gui = new GUI({
   closed: true
 });
 var obj = {
-  barrelAngle: Math.PI / 6,
+  barrelAngle: Math.PI / 10,
   position: 0,
   ballMass: 1,
   ballSpeed: 3,
@@ -228,7 +228,7 @@ function spawnBlocks(mass = 0.1) {
   const position = new Vec3(6, 0, 6);
 
   // Layers
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < (isMobile() ? 7 : 10); i++) {
     for (let j = 0; j < 3; j++) {
       const body = new Body({ mass })
 
@@ -322,7 +322,7 @@ class Cannon {
   bottomRadius = 1;
   barrelHeight = this.bottomRadius * 3;
   rimThickness = this.bottomRadius / 10;
-  barrelInitialAngle = Math.PI / 6;
+  barrelInitialAngle = Math.PI / 10;
   barrelAngle: number;
   shrinkRate = 0.75;
   horizontalAngle = Math.PI / 4;
@@ -517,7 +517,7 @@ class Cannon {
     const balls = objectToUpdate.filter((o, i) => {
       return !o.isBlock
     })
-    if (balls.length > (isMobile() ? 3 : 5)) {
+    if (balls.length > (isMobile() ? 0 : 5)) {
       for (const obj of balls) {
         obj.body.removeEventListener('collide', playHit);
         world.removeBody(obj.body)
