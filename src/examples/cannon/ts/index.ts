@@ -143,46 +143,44 @@ world.addContactMaterial(contactMaterial);
 let objectToUpdate: { body: Body, mesh: Mesh, isBlock?: boolean }[] = []
 
 
-const gui = new GUI({
-  closed: true
-});
-var obj = {
-  barrelAngle: Math.PI / 10,
-  position: 0,
-  ballMass: 1,
-  ballSpeed: 3,
-  blockMass: 0.1,
-  reset: () => {
-    for (const obj of objectToUpdate) {
-      obj.body.removeEventListener('collide', playHit);
-      world.removeBody(obj.body)
-      scene.remove(obj.mesh)
+if (!isMobile()) {
+  const gui = new GUI({
+    closed: true
+  });
+  var obj = {
+    barrelAngle: Math.PI / 10,
+    position: 0,
+    ballMass: 1,
+    ballSpeed: 3,
+    blockMass: 0.1,
+    reset: function () {
+      console.log(this.blockMass)
+      reset(this.blockMass)
     }
-    objectToUpdate.length = 0;
-    spawnBlocks(obj.blockMass);
-  }
-};
+  };
 
-gui.add(obj, "position").min(0).max(10).step(0.01).name("position").onChange((value) => {
-  const cannon: Cannon = controllable.cannon;
-  cannon.move(value);
-})
-gui.add(obj, "blockMass").min(0.1).max(3).step(0.1).name("blockMass").onChange((value) => {
-  obj.reset();
-})
-gui.add(obj, "ballMass").min(1).max(10).step(1).name("ballMass").onChange((value) => {
-  const cannon: Cannon = controllable.cannon;
-  cannon.ballMass = value;
-})
-gui.add(obj, "ballSpeed").min(1).max(10).step(1).name("ballSpeed").onChange((value) => {
-  const cannon: Cannon = controllable.cannon;
-  cannon.ballSpeed = value;
-})
-gui.add(obj, "barrelAngle").min(0).max(Math.PI * 5 / 12).step(0.01).name("barrelAngle").onChange((value) => {
-  const cannon: Cannon = controllable.cannon;
-  cannon.rotateBarrel(value);
-})
-gui.add(obj, "reset").name("reset");
+  gui.add(obj, "position").min(0).max(10).step(0.01).name("position").onChange((value) => {
+    const cannon: Cannon = controllable.cannon;
+    cannon.move(value);
+  })
+  gui.add(obj, "blockMass").min(0.1).max(3).step(0.1).name("blockMass").onChange((value) => {
+    obj.reset();
+  })
+  gui.add(obj, "ballMass").min(1).max(10).step(1).name("ballMass").onChange((value) => {
+    const cannon: Cannon = controllable.cannon;
+    cannon.ballMass = value;
+  })
+  gui.add(obj, "ballSpeed").min(1).max(10).step(1).name("ballSpeed").onChange((value) => {
+    const cannon: Cannon = controllable.cannon;
+    cannon.ballSpeed = value;
+  })
+  gui.add(obj, "barrelAngle").min(0).max(Math.PI * 5 / 12).step(0.01).name("barrelAngle").onChange((value) => {
+    const cannon: Cannon = controllable.cannon;
+    cannon.rotateBarrel(value);
+  })
+  gui.add(obj, "reset").name("reset");
+
+}
 
 
 const ballGeo = new SphereGeometry(1, 10, 10);
@@ -193,6 +191,15 @@ const defaultMaterial = new MeshStandardMaterial({
   roughness: 0.8,
 })
 
+function reset(mass = 0.1) {
+  for (const obj of objectToUpdate) {
+    obj.body.removeEventListener('collide', playHit);
+    world.removeBody(obj.body)
+    scene.remove(obj.mesh)
+  }
+  objectToUpdate.length = 0;
+  spawnBlocks(mass);
+}
 
 function spawnPlane() {
   const planeGeo = new PlaneGeometry(80, 80, 10, 10);
@@ -272,7 +279,7 @@ function spawnBlocks(mass = 0.1) {
   }
 }
 function isMobile() {
-  const isMobile = (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1); console.log(isMobile)
+  const isMobile = (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
   return isMobile;
 };
 
@@ -332,6 +339,7 @@ class Cannon {
   isReacting: boolean;
   ballMass = 1;
   ballSpeed = 3;
+  mobileTimer: any
   constructor() {
     this.init();
   }
@@ -541,11 +549,15 @@ class Cannon {
     })
     ballBody.applyLocalForce(toward.vmul(new Vec3(600 * this.ballSpeed, 600 * this.ballSpeed, 600 * this.ballSpeed)))
     ballBody.addEventListener('collide', playHit)
-    ballMesh.castShadow = true;
     world.addBody(ballBody);
     scene.add(ballMesh);
     objectToUpdate.push({ body: ballBody, mesh: ballMesh });
-
+    if (isMobile()) {
+      clearTimeout(this.mobileTimer)
+      this.mobileTimer = setTimeout(() => {
+        reset();
+      }, 3000)
+    }
 
     playCannon();
     this.reactio();
