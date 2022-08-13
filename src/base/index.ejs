@@ -35,7 +35,7 @@
         <div class="playground__loading" id="loading">
           <%- include('./template/loading-icon.ejs') %>
         </div>
-        <iframe src="examples/demo.html" frameborder="0" class="playground__content" id="playground-content"></iframe>
+        <iframe src="examples/demo.html" frameborder="0" class="playground__content" id="playground-content" onload="this.contentWindow.focus()"></iframe>
       </div>
     </div>
   </div>
