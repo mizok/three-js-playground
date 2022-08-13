@@ -44,6 +44,7 @@ body{
     border-radius: 20px;
     animation:fadeOut 2s forwards;
     animation-delay:5s;
+    pointer-events: none;
     body.mobile &{
         display: none;
     }
@@ -57,6 +58,7 @@ body{
     border-radius: 20px;
     animation:fadeOut 2s forwards;
     animation-delay:4s;
+    pointer-events: none;
     body.mobile &{
         display: inline-block;
     }
