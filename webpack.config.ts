@@ -124,6 +124,7 @@ const config = (env: any, argv: any): webpack.Configuration => {
     devServer: {
       historyApiFallback: true,
       open: true,
+      host: '192.168.1.107',
       compress: true,
       watchFiles: [
         'src/pages/*.html',

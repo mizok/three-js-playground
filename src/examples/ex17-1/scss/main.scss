@@ -1,1 +1,59 @@
 @import '@util/style/main';
+
+@keyframes fadeIn {
+    0%{
+        opacity: 0;
+    }
+    100%{
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    0%{
+        opacity: 1;
+    }
+    100%{
+        opacity: 0;
+    }
+}
+
+.guide-box{
+    position: fixed;
+    z-index: 10;
+    bottom: 20%;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    text-align: center;
+    animation:fadeIn 2s forwards;
+    animation-delay:1.5s;
+    opacity: 0;
+    font-size: 20px;
+}
+
+.guide{
+    padding: 20px;
+    display: inline-block;
+    background-color: rgba(50,50,50);
+    color:white;
+    border-radius: 20px;
+    animation:fadeOut 2s forwards;
+    animation-delay:5s;
+    body.mobile &{
+        display: none;
+    }
+}
+
+.guide-mobile{
+    padding: 20px;
+    display: none;
+    background-color: rgba(50,50,50);
+    color:white;
+    border-radius: 20px;
+    animation:fadeOut 2s forwards;
+    animation-delay:4s;
+    body.mobile &{
+        display: inline-block;
+    }
+}

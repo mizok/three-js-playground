@@ -1,22 +1,35 @@
-import { AmbientLight, AxesHelper, BoxGeometry, Clock, CubeTextureLoader, DirectionalLight, DoubleSide, Mesh, MeshMatcapMaterial, MeshPhongMaterial, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion, Fog, Color, SpotLight, PointLightHelper, Group, CylinderGeometry } from 'three';
+import { AmbientLight, AxesHelper, BoxGeometry, Clock, DoubleSide, Mesh, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion, Fog, Color, SpotLight, PointLightHelper, Group, CylinderGeometry, Vector2, Camera } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { debounce } from 'lodash';
 import { Body, Box, ContactEquation, ContactMaterial, Cylinder, Material, Plane, SAPBroadphase, Sphere, Vec3, World } from 'cannon-es';
 import { GUI } from 'dat.gui'
 import { CSG } from 'three-csg-ts';
-import CannonDebugger from 'cannon-es-debugger';
-const hitSound = require('@sound/hit.mp3')
+import { gsap, Power2, Power1 } from 'gsap'
+// import CannonDebugger from 'cannon-es-debugger';
+
+const hitSound = require('@sound/hit.mp3');
+const cannonSound1 = require('@sound/cannon1.mp3');
+const cannonSound2 = require('@sound/cannon2.mp3');
+const cannon1 = new Audio(cannonSound1);
+const cannon2 = new Audio(cannonSound2);
 const hit = new Audio(hitSound);
-const playHit = (ev: any) => {
+const playHit = (ev: any, limit = 1.5) => {
   const contact = ev?.contact;
   if (contact instanceof ContactEquation) {
     const impact = contact.getImpactVelocityAlongNormal();
-    if (impact > 1.5) {
+    if (impact > limit) {
       hit.volume = Math.random();
       hit.currentTime = 0;
       hit.play();
     }
   }
+}
+const playCannon = () => {
+  const sounds = [cannon1, cannon2]
+  const random = Math.ceil(Math.random() * sounds.length) - 1;
+  const sound = sounds[random];
+  sound.currentTime = random == 0 ? 0.5 : 1.3;
+  sound.play();
 }
 let controllable: { [key: string]: any } = {}
 
@@ -28,13 +41,24 @@ class RenderEnv {
   renderer: WebGLRenderer;
   clock: Clock;
   world: World;
+  mouse: Vector2 = new Vector2();
   clearColor: Color = new Color(0x333333);
+
   frameListener: (time: number) => void = (time: number) => { }
   constructor() {
     this.init();
   }
   init() {
     Object.assign(this, this.getSceneRenderReady());
+  }
+
+  private setCamera(camera: Camera) {
+    if (window.innerWidth / window.innerHeight < 1.2) {
+      camera.position.set(-7.149474797412067, 4.582458617816071, -10.706953052369284);
+    }
+    else {
+      camera.position.set(1.762181275462378, 3.0189808412431107, -13.211102617158202);
+    }
   }
 
   getSceneRenderReady() {
@@ -50,9 +74,13 @@ class RenderEnv {
       alpha: true // 開放渲染rgba透明通道
     })
     const camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(-4, 2, -2)
-    const axis = new AxesHelper(5);
+    this.setCamera(camera);
+    //@ts-ignore
+    // globalThis.camera = camera;
 
+
+    const axis = new AxesHelper(5);
+    axis.visible = false;
     const aLight = new AmbientLight(0xffffff, 0.5);
     const pLight = new PointLight(0xffffff, 0.5);
     pLight.position.set(4, 4, 4);
@@ -74,12 +102,19 @@ class RenderEnv {
 
     window.addEventListener('resize', debounce(() => {
       camera.aspect = window.innerWidth / window.innerHeight;
+      this.setCamera(camera);
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }, 200))
 
+
+
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true;
+    controls.minPolarAngle = 0;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.maxPolarAngle = Math.PI * 5 / 12;
 
 
     const tick = () => {
@@ -103,18 +138,20 @@ const contactMaterial = new ContactMaterial(defaultMat, defaultMat, {
 })
 let env: RenderEnv;
 const { scene, renderer, camera, clock, axis, world } = env = new RenderEnv();
+
 world.addContactMaterial(contactMaterial);
-const objectToUpdate: { body: Body, mesh: Mesh }[] = []
+let objectToUpdate: { body: Body, mesh: Mesh, isBlock?: boolean }[] = []
 
 
-const gui = new GUI();
+const gui = new GUI({
+  closed: true
+});
 var obj = {
-  reload: () => {
-    controllable?.cannon?.reload();
-  },
-  fire: () => {
-    // fire(Math.random(), pos)
-  },
+  barrelAngle: Math.PI / 6,
+  position: 0,
+  ballMass: 1,
+  ballSpeed: 3,
+  blockMass: 0.1,
   reset: () => {
     for (const obj of objectToUpdate) {
       obj.body.removeEventListener('collide', playHit);
@@ -122,14 +159,33 @@ var obj = {
       scene.remove(obj.mesh)
     }
     objectToUpdate.length = 0;
+    spawnBlocks(obj.blockMass);
   }
 };
-gui.add(obj, "fire").name("fire");
-gui.add(obj, "reload").name("reload");
+
+gui.add(obj, "position").min(0).max(10).step(0.01).name("position").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.move(value);
+})
+gui.add(obj, "blockMass").min(0.1).max(3).step(0.1).name("blockMass").onChange((value) => {
+  obj.reset();
+})
+gui.add(obj, "ballMass").min(1).max(10).step(1).name("ballMass").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.ballMass = value;
+})
+gui.add(obj, "ballSpeed").min(1).max(10).step(1).name("ballSpeed").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.ballSpeed = value;
+})
+gui.add(obj, "barrelAngle").min(0).max(Math.PI * 5 / 12).step(0.01).name("barrelAngle").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.rotateBarrel(value);
+})
 gui.add(obj, "reset").name("reset");
 
 
-const ballGeo = new SphereGeometry(1, 20, 20);
+const ballGeo = new SphereGeometry(1, 10, 10);
 
 
 const defaultMaterial = new MeshStandardMaterial({
@@ -139,7 +195,7 @@ const defaultMaterial = new MeshStandardMaterial({
 
 
 function spawnPlane() {
-  const planeGeo = new PlaneGeometry(80, 80, 20, 20);
+  const planeGeo = new PlaneGeometry(80, 80, 10, 10);
   const planeMat = new MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.75,
@@ -163,13 +219,84 @@ function spawnPlane() {
 function spawnCannon() {
   const cannon = new Cannon();
   controllable.cannon = cannon;
-  scene.add(cannon.body)
+  scene.add(cannon.bodyGroup)
 }
 
+function spawnBlocks(mass = 0.1) {
+  const size = 0.5
+  const gap = 0.02
+  const position = new Vec3(6, 0, 6);
+
+  // Layers
+  for (let i = 0; i < 10; i++) {
+    for (let j = 0; j < 3; j++) {
+      const body = new Body({ mass })
+
+      let halfExtents
+      let dx
+      let dz
+      if (i % 2 === 0) {
+        halfExtents = new Vec3(size, size, size * 3)
+        dx = 1
+        dz = 0
+      } else {
+        halfExtents = new Vec3(size * 3, size, size)
+        dx = 0
+        dz = 1
+      }
+      const mesh = new Mesh(
+        new BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2, 5, 5, 5),
+        defaultMaterial
+      )
+      const shape = new Box(halfExtents)
+
+      body.addShape(shape)
+      body.position.set(
+        position.x + 2 * (size + gap) * (j - 1) * dx,
+        position.y + 2 * (size + gap) * (i + 1),
+        position.z + 2 * (size + gap) * (j - 1) * dz
+      )
+      mesh.position.set(
+        position.x + 2 * (size + gap) * (j - 1) * dx,
+        position.y + 2 * (size + gap) * (i + 1),
+        position.z + 2 * (size + gap) * (j - 1) * dz
+      )
+      mesh.castShadow = true;
+      body.addEventListener('collide', (ev: any) => { playHit(ev, 4) })
+      scene.add(mesh);
+      world.addBody(body)
+      objectToUpdate.push({
+        body, mesh, isBlock: true
+      })
+    }
+  }
+}
+function isMobile() {
+  const isMobile = (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1); console.log(isMobile)
+  return isMobile;
+};
+
 function main() {
+  if (isMobile()) {
+    document.body.classList.add('mobile');
+  }
   spawnPlane();
   spawnCannon();
-  const cannonDebugger = CannonDebugger(scene, world);
+  spawnBlocks();
+  // const cannonDebugger = CannonDebugger(scene, world);
+
+  renderer.domElement.addEventListener('touchstart', () => {
+    controllable.cannon.fire();
+  })
+
+  window.addEventListener('keydown', (ev: KeyboardEvent) => {
+    if (ev.key == " " ||
+      ev.code == "Space" ||
+      ev.keyCode == 32
+    ) {
+      controllable.cannon.fire();
+    }
+  })
 
   // tick
   let pvTime = 0;
@@ -178,7 +305,7 @@ function main() {
     const dt = time - pvTime;
     pvTime = time;
     world.step(1 / fps, dt, 3);
-    cannonDebugger.update();
+    // cannonDebugger.update();
     for (const o of objectToUpdate) {
       const pos = Object.assign(new Vector3(), o.body.position);
       const rotation = Object.assign(new Quaternion(), o.body.quaternion);
@@ -190,21 +317,30 @@ function main() {
 
 
 class Cannon {
+  bodyGroup: Group = new Group();
   body: Group = new Group()
   bottomRadius = 1;
   barrelHeight = this.bottomRadius * 3;
   rimThickness = this.bottomRadius / 10;
-  barrelAngle = Math.PI / 6;
+  barrelInitialAngle = Math.PI / 6;
+  barrelAngle: number;
   shrinkRate = 0.75;
+  horizontalAngle = Math.PI / 4;
   position = new Vec3(-this.bottomRadius * 4, 0, -this.bottomRadius * 4)
+  barrel: Mesh;
+  tires: Group;
+  isReacting: boolean;
+  ballMass = 1;
+  ballSpeed = 3;
   constructor() {
     this.init();
   }
   private init() {
     this.initBarrel();
     this.initTires();
-    this.body.rotateY(Math.PI / 4);
-    this.body.position.set(this.position.x, this.position.y, this.position.z)
+    this.bodyGroup.add(this.body)
+    this.bodyGroup.rotateY(this.horizontalAngle);
+    this.bodyGroup.position.set(this.position.x, this.position.y, this.position.z);
   }
 
   private initBarrel() {
@@ -212,7 +348,7 @@ class Cannon {
     const height = this.barrelHeight;
     const rate = this.shrinkRate;
     const thickness = this.rimThickness;
-    const bottomGeo = new SphereGeometry(radius, 40, 40);
+    const bottomGeo = new SphereGeometry(radius, 20, 20);
     bottomGeo.translate(0, 0, 0)
     const barrelBottom = new Mesh(
       bottomGeo,
@@ -220,8 +356,8 @@ class Cannon {
     )
     const barrelBody = (() => {
       const fixer = 1.0035;
-      const outerGeo = new CylinderGeometry(radius * rate, radius * fixer, height, 40, 20);
-      const innerGeo = new CylinderGeometry((radius - thickness) * rate, (radius - thickness) * fixer, height, 40, 20);
+      const outerGeo = new CylinderGeometry(radius * rate, radius * fixer, height, 30, 10);
+      const innerGeo = new CylinderGeometry((radius - thickness) * rate, (radius - thickness) * fixer, height, 30, 10);
 
       outerGeo.translate(0, height / 2, 0);
       innerGeo.translate(0, height / 2, 0);
@@ -239,18 +375,17 @@ class Cannon {
       return body;
     })()
 
-    const barrel = CSG.union(barrelBottom, barrelBody);
-    barrel.position.setY(radius);
-    barrel.rotation.set(Math.PI / 2 - this.barrelAngle, 0, 0);
+    this.barrel = CSG.union(barrelBottom, barrelBody);
+    this.barrel.position.setY(radius);
+    this.rotateBarrel(this.barrelInitialAngle);
+    this.body.add(this.barrel)
 
-    this.body.add(barrel)
   }
 
   private initTires() {
     const genBeam = (diameter: number, rotation: number, thickness: number) => {
       const beamGeo = new BoxGeometry(thickness, diameter, thickness);
       beamGeo.rotateZ(Math.PI / 2 + rotation)
-      beamGeo.translate(0, diameter / 2, 0);
 
       const beam = new Mesh(
         beamGeo,
@@ -268,14 +403,13 @@ class Cannon {
       return beams;
     }
     const genFrame = (radius: number, thickness: number) => {
-      const outerGeo = new CylinderGeometry(radius, radius, thickness, 30, 30);
-      const innerGeo = new CylinderGeometry((radius - thickness), (radius - thickness), thickness, 30, 30);
+      const outerGeo = new CylinderGeometry(radius, radius, thickness, 30, 10);
+      const innerGeo = new CylinderGeometry((radius - thickness), (radius - thickness), thickness, 30, 10);
 
 
       outerGeo.rotateX(Math.PI / 2);
-      outerGeo.translate(0, radius, 0);
       innerGeo.rotateX(Math.PI / 2);
-      innerGeo.translate(0, radius, 0);
+
 
       const outer = new Mesh(
         outerGeo,
@@ -291,7 +425,8 @@ class Cannon {
       return frame;
     }
 
-    const tires = ((radius = this.bottomRadius, thickness = this.rimThickness, beamNum = 6) => {
+    const tiresModule = ((radius = this.bottomRadius, thickness = this.rimThickness, beamNum = 6) => {
+      const tiresPoser = new Group();
       const tires = new Group();
       const tireL = new Group();
       const beams = genBeams(radius * 2, beamNum, thickness);
@@ -302,11 +437,15 @@ class Cannon {
       tireR.position.setZ(radius);
 
       tires.add(tireL, tireR);
-      tires.rotateY(Math.PI / 2);
-      return tires;
+      tiresPoser.add(tires);
+      tiresPoser.rotateY(Math.PI / 2);
+      tiresPoser.position.setY(this.bottomRadius);
+      return { tiresPoser, tires };
     })()
 
-    this.body.add(tires)
+    this.tires = tiresModule.tires;
+
+    this.body.add(tiresModule.tiresPoser)
   }
 
   private getToward() {
@@ -322,7 +461,72 @@ class Cannon {
     return pos;
   }
 
-  reload() {
+  move(dist: number) {
+    this.position = new Vec3(this.bodyGroup.position.x, this.bodyGroup.position.y, this.bodyGroup.position.z)
+      .vsub(
+        new Vec3(dist * Math.cos(this.horizontalAngle),
+          0,
+          dist * Math.cos(this.horizontalAngle)
+        )
+      )
+    this.body.position.set(0, 0, -dist);
+    const rotation = dist / this.bottomRadius;// 移動的距離除以圓周再乘以Math.PI*2
+    this.tires.rotation.z = -rotation;
+  }
+
+  private reactio() {
+    const initialPosition = this.body.position.length()
+    const config = {
+      dist: initialPosition,
+      maxDist: initialPosition + 1.5,
+      duration: 0.5
+    }
+    this.isReacting = true;
+    gsap.to(config, {
+      dist: config.maxDist,
+      duration: config.duration,
+      ease: Power2.easeOut,
+      onUpdate: () => {
+        this.move(config.dist)
+      },
+      onComplete: () => {
+        gsap.to(config, {
+          dist: initialPosition,
+          duration: config.duration * 2,
+          ease: Power1.easeInOut,
+          onUpdate: () => {
+            this.move(config.dist)
+          },
+          onComplete: () => {
+            this.isReacting = false
+          }
+        })
+      }
+    })
+  }
+
+
+  rotateBarrel(angle: number) {
+    this.barrelAngle = angle;
+    this.barrel.rotation.set(Math.PI / 2 - angle, 0, 0);
+  }
+
+  fire() {
+    if (this.isReacting) return;
+    // 如果場上的砲彈數量大於n顆則強制移除所有場上砲彈
+    const balls = objectToUpdate.filter((o, i) => {
+      return !o.isBlock
+    })
+    if (balls.length > (isMobile() ? 3 : 5)) {
+      for (const obj of balls) {
+        obj.body.removeEventListener('collide', playHit);
+        world.removeBody(obj.body)
+        scene.remove(obj.mesh)
+      }
+      objectToUpdate = objectToUpdate.filter((o, i) => {
+        return o.isBlock
+      })
+    }
     const ballRadius = (this.bottomRadius - this.rimThickness) * this.shrinkRate;
     const toward = this.getToward();
     const ballPosition = this.getBallInitPosition(toward);
@@ -331,17 +535,20 @@ class Cannon {
     const ballShape = new Sphere(ballRadius);
     const ballBody = new Body({
       position: ballPosition,
-      mass: 1,
+      mass: this.ballMass,
       shape: ballShape,
       material: defaultMat,
-
     })
-    ballBody.applyLocalForce(toward.vmul(new Vec3(700, 700, 700)))
+    ballBody.applyLocalForce(toward.vmul(new Vec3(600 * this.ballSpeed, 600 * this.ballSpeed, 600 * this.ballSpeed)))
     ballBody.addEventListener('collide', playHit)
     ballMesh.castShadow = true;
     world.addBody(ballBody);
     scene.add(ballMesh);
     objectToUpdate.push({ body: ballBody, mesh: ballMesh });
+
+
+    playCannon();
+    this.reactio();
   }
 
 }
