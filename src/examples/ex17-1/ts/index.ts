@@ -142,6 +142,7 @@ const { scene, renderer, camera, clock, axis, world } = env = new RenderEnv();
 world.addContactMaterial(contactMaterial);
 let objectToUpdate: { body: Body, mesh: Mesh, isBlock?: boolean }[] = []
 
+
 if (!isMobile()) {
   const gui = new GUI({
     closed: true
@@ -152,14 +153,9 @@ if (!isMobile()) {
     ballMass: 1,
     ballSpeed: 3,
     blockMass: 0.1,
-    reset: () => {
-      for (const obj of objectToUpdate) {
-        obj.body.removeEventListener('collide', playHit);
-        world.removeBody(obj.body)
-        scene.remove(obj.mesh)
-      }
-      objectToUpdate.length = 0;
-      spawnBlocks(obj.blockMass);
+    reset: function () {
+      console.log(this.blockMass)
+      reset(this.blockMass)
     }
   };
 
@@ -195,6 +191,15 @@ const defaultMaterial = new MeshStandardMaterial({
   roughness: 0.8,
 })
 
+function reset(mass = 0.1) {
+  for (const obj of objectToUpdate) {
+    obj.body.removeEventListener('collide', playHit);
+    world.removeBody(obj.body)
+    scene.remove(obj.mesh)
+  }
+  objectToUpdate.length = 0;
+  spawnBlocks(mass);
+}
 
 function spawnPlane() {
   const planeGeo = new PlaneGeometry(80, 80, 10, 10);
@@ -550,9 +555,8 @@ class Cannon {
     if (isMobile()) {
       clearTimeout(this.mobileTimer)
       this.mobileTimer = setTimeout(() => {
-        objectToUpdate.length = 0;
-        spawnBlocks()
-      }, 1000)
+        reset();
+      }, 3000)
     }
 
     playCannon();
