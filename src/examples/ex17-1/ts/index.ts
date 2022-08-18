@@ -10,25 +10,40 @@ import { Howl } from 'howler';
 
 const hitSound1 = require('@sound/rock1.mp3');
 const hitSound2 = require('@sound/rock2.mp3');
-const hitSound3 = require('@sound/hit.mp3');
+const hitSound3 = require('@sound/rock3.mp3');
+const hitSound4 = require('@sound/hit.mp3');
 const cannonSound1 = require('@sound/cannon1.mp3');
 const cannonSound2 = require('@sound/cannon2.mp3');
 const cannon1 = new Howl({ src: cannonSound1 });
 const cannon2 = new Howl({ src: cannonSound2 });
-const hit1 = new Howl({ src: hitSound1 });
-const hit2 = new Howl({ src: hitSound2 });
-const hit3 = new Howl({ src: hitSound3 });
-const playHit = (ev: any, limit = 1.5) => {
+const hit1 = new Howl({ src: hitSound1, volume: 0.1 });
+const hit2 = new Howl({ src: hitSound2, volume: 0.2 });
+const hit3 = new Howl({ src: hitSound3, volume: 0.05 });
+const hit4 = new Howl({ src: hitSound4, volume: 0.07 });
+const playHit = (ev: any) => {
+  if (isMobile()) return;
   const contact = ev?.contact;
-  const sounds = [hit1, hit2, hit3]
+  const sounds = [hit1, hit2, hit3, hit4]
+  let n: number;
   if (contact instanceof ContactEquation) {
     const impact = contact.getImpactVelocityAlongNormal();
-    const random = Math.ceil(Math.random() * sounds.length) - 1;
-    if (impact > limit) {
-      const sound = sounds[random];
-      sound.volume(Math.random() / 3);
-      sound.play();
+
+    if (impact > 0.5) {
+      n = 0
+      if (impact > 5) {
+        n = 3
+      }
+      else if (impact > 4) {
+        n = 2
+      }
+      else if (impact > 2) {
+        n = 1
+      }
+      sounds[n].play();
+      console.log(impact, n)
     }
+
+
 
   }
 }
