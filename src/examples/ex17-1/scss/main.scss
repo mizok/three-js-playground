@@ -1,4 +1,7 @@
 @import '@util/style/main';
+
+@import './button';
+
 body{
     font-size: 0;
 }
@@ -29,11 +32,11 @@ body{
     right: 0;
     margin: 0 auto;
     text-align: center;
-    animation:fadeIn 2s forwards;
-    animation-delay:1.5s;
-    opacity: 0;
     font-size: 20px;
     pointer-events: none;
+    animation:  fadeIn 1s forwards;
+    animation-delay: 1.5s;
+    opacity: 0;
 }
 
 .guide{
@@ -42,8 +45,6 @@ body{
     background-color: rgba(50,50,50);
     color:white;
     border-radius: 20px;
-    animation:fadeOut 2s forwards;
-    animation-delay:5s;
     pointer-events: none;
     body.mobile &{
         display: none;
@@ -56,10 +57,38 @@ body{
     background-color: rgba(50,50,50);
     color:white;
     border-radius: 20px;
-    animation:fadeOut 2s forwards;
-    animation-delay:4s;
     pointer-events: none;
     body.mobile &{
         display: inline-block;
     }
 }
+
+
+
+
+  .mask{
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    
+    &__inner{
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 2s forwards;
+        opacity: 0;
+    }
+  }
+
+  .copyright{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    color:white;
+    font-size: 14px;
+  }

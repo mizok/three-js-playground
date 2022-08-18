@@ -4,10 +4,18 @@
 <%- include('../../util/template/head.ejs',{title:'ex01'})%>
 
 <body>
-
+    <div class="mask" id="mask">
+        <div class="mask__inner">
+            <button id="start" class="btn">
+                <span></span>
+            </button>
+        </div>
+        <div class="guide-box">
+            <div class="guide">PRESS <b>SPACE</b> TO FIRE.</div>
+            <div class="guide-mobile">TOUCH SCREEN TO FIRE.</div>
+        </div>
+    </div>
+   <div class="copyright">Sound Effect from <a href="https://pixabay.com/sound-effects/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=music&amp;utm_content=6748">Pixabay</a></div>
 </body>
-<div class="guide-box">
-    <div class="guide">PRESS <b>SPACE</b> TO FIRE.</div>
-    <div class="guide-mobile">TOUCH SCREEN TO FIRE.</div>
-</div>
+
 </html>

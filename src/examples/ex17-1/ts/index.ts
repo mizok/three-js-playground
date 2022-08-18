@@ -1,34 +1,41 @@
 import { AmbientLight, AxesHelper, BoxGeometry, Clock, DoubleSide, Mesh, MeshStandardMaterial, PerspectiveCamera, PlaneGeometry, PointLight, Scene, SphereGeometry, Vector3, WebGLRenderer, Quaternion, Fog, Color, SpotLight, PointLightHelper, Group, CylinderGeometry, Vector2, Camera } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { debounce } from 'lodash';
+import { debounce, times } from 'lodash';
 import { Body, Box, ContactEquation, ContactMaterial, Cylinder, Material, Plane, SAPBroadphase, Sphere, Vec3, World } from 'cannon-es';
 import { GUI } from 'dat.gui'
 import { CSG } from 'three-csg-ts';
-import { gsap, Power2, Power1 } from 'gsap'
+import { gsap, Power2, Power1 } from 'gsap';
+import { Howl } from 'howler';
 // import CannonDebugger from 'cannon-es-debugger';
 
-const hitSound = require('@sound/hit.mp3');
+const hitSound1 = require('@sound/rock1.mp3');
+const hitSound2 = require('@sound/rock2.mp3');
+const hitSound3 = require('@sound/hit.mp3');
 const cannonSound1 = require('@sound/cannon1.mp3');
 const cannonSound2 = require('@sound/cannon2.mp3');
-const cannon1 = new Audio(cannonSound1);
-const cannon2 = new Audio(cannonSound2);
-const hit = new Audio(hitSound);
+const cannon1 = new Howl({ src: cannonSound1 });
+const cannon2 = new Howl({ src: cannonSound2 });
+const hit1 = new Howl({ src: hitSound1 });
+const hit2 = new Howl({ src: hitSound2 });
+const hit3 = new Howl({ src: hitSound3 });
 const playHit = (ev: any, limit = 1.5) => {
   const contact = ev?.contact;
+  const sounds = [hit1, hit2, hit3]
   if (contact instanceof ContactEquation) {
     const impact = contact.getImpactVelocityAlongNormal();
+    const random = Math.ceil(Math.random() * sounds.length) - 1;
     if (impact > limit) {
-      hit.volume = Math.random();
-      hit.currentTime = 0;
-      hit.play();
+      const sound = sounds[random];
+      sound.volume(Math.random() / 3);
+      sound.play();
     }
+
   }
 }
 const playCannon = () => {
   const sounds = [cannon1, cannon2]
   const random = Math.ceil(Math.random() * sounds.length) - 1;
   const sound = sounds[random];
-  sound.currentTime = random == 0 ? 0.5 : 1.3;
   sound.play();
 }
 let controllable: { [key: string]: any } = {}
@@ -108,7 +115,6 @@ class RenderEnv {
     }, 200))
 
 
-
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true;
     controls.minPolarAngle = 0;
@@ -143,44 +149,51 @@ world.addContactMaterial(contactMaterial);
 let objectToUpdate: { body: Body, mesh: Mesh, isBlock?: boolean }[] = []
 
 
-if (!isMobile()) {
-  const gui = new GUI({
-    closed: true
-  });
-  var obj = {
-    barrelAngle: Math.PI / 10,
-    position: 0,
-    ballMass: 1,
-    ballSpeed: 3,
-    blockMass: 0.1,
-    reset: function () {
-      console.log(this.blockMass)
-      reset(this.blockMass)
-    }
-  };
+const gui = new GUI({
+  closed: true
+});
+var obj = {
+  barrelAngle: Math.PI / 10,
+  position: 0,
+  ballMass: 1,
+  ballSpeed: 3,
+  blockMass: 0.1,
+  refresh: () => {
+    reset();
+  },
+  autoRefresh: true
+};
 
-  gui.add(obj, "position").min(0).max(10).step(0.01).name("position").onChange((value) => {
-    const cannon: Cannon = controllable.cannon;
-    cannon.move(value);
-  })
-  gui.add(obj, "blockMass").min(0.1).max(3).step(0.1).name("blockMass").onChange((value) => {
-    obj.reset();
-  })
-  gui.add(obj, "ballMass").min(1).max(10).step(1).name("ballMass").onChange((value) => {
-    const cannon: Cannon = controllable.cannon;
-    cannon.ballMass = value;
-  })
-  gui.add(obj, "ballSpeed").min(1).max(10).step(1).name("ballSpeed").onChange((value) => {
-    const cannon: Cannon = controllable.cannon;
-    cannon.ballSpeed = value;
-  })
-  gui.add(obj, "barrelAngle").min(0).max(Math.PI * 5 / 12).step(0.01).name("barrelAngle").onChange((value) => {
-    const cannon: Cannon = controllable.cannon;
-    cannon.rotateBarrel(value);
-  })
-  gui.add(obj, "reset").name("reset");
+gui.add(obj, "position").min(0).max(10).step(0.01).name("position").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.move(value);
+})
+gui.add(obj, "blockMass").min(0.1).max(3).step(0.1).name("blockMass").onChange((value) => {
+  reset();
+})
+gui.add(obj, "ballMass").min(1).max(10).step(1).name("ballMass").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.ballMass = value;
+})
+gui.add(obj, "ballSpeed").min(1).max(10).step(1).name("ballSpeed").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.ballSpeed = value;
+})
+gui.add(obj, "barrelAngle").min(0).max(Math.PI * 5 / 12).step(0.01).name("barrelAngle").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.rotateBarrel(value);
+});
+gui.add(obj, "autoRefresh").name("autoRefresh").onChange((value) => {
+  const cannon: Cannon = controllable.cannon;
+  cannon.autoRefresh = value;
+  if (!value) {
+    clearTimeout(cannon.timer)
+  }
 
-}
+});
+gui.add(obj, "refresh").name("refresh");
+
+
 
 
 const ballGeo = new SphereGeometry(1, 10, 10);
@@ -194,6 +207,9 @@ const defaultMaterial = new MeshStandardMaterial({
 function reset(mass = 0.1) {
   for (const obj of objectToUpdate) {
     obj.body.removeEventListener('collide', playHit);
+    if (obj.isBlock) {
+      obj.mesh.geometry.dispose();
+    }
     world.removeBody(obj.body)
     scene.remove(obj.mesh)
   }
@@ -230,6 +246,8 @@ function spawnCannon() {
 }
 
 function spawnBlocks(mass = 0.1) {
+
+
   const size = 0.5
   const gap = 0.02
   const position = new Vec3(6, 0, 6);
@@ -251,8 +269,9 @@ function spawnBlocks(mass = 0.1) {
         dx = 0
         dz = 1
       }
+      const geo = new BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2, 5, 5, 5);
       const mesh = new Mesh(
-        new BoxGeometry(halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2, 5, 5, 5),
+        geo,
         defaultMaterial
       )
       const shape = new Box(halfExtents)
@@ -268,8 +287,7 @@ function spawnBlocks(mass = 0.1) {
         position.y + 2 * (size + gap) * (i + 1),
         position.z + 2 * (size + gap) * (j - 1) * dz
       )
-      mesh.castShadow = true;
-      body.addEventListener('collide', (ev: any) => { playHit(ev, 4) })
+      body.addEventListener('collide', playHit)
       scene.add(mesh);
       world.addBody(body)
       objectToUpdate.push({
@@ -283,14 +301,41 @@ function isMobile() {
   return isMobile;
 };
 
+function fadeOut(selector: string, timeInterval = 1000, callback?: () => void) {
+
+  var fadeTarget = document.querySelector<HTMLElement>(selector);
+
+  let time = timeInterval / 1000;
+  fadeTarget.style.transition = time + 's';
+  fadeTarget.style.opacity = '0';
+  var fadeEffect = setInterval(function () {
+
+    if (parseInt(fadeTarget.style.opacity) <= 0) {
+      clearInterval(fadeEffect);
+      fadeTarget.style.display = 'none';
+      if (typeof (callback) === 'function') {
+        callback();
+      }
+    }
+  }, timeInterval);
+}
+
 function main() {
   if (isMobile()) {
     document.body.classList.add('mobile');
   }
   spawnPlane();
   spawnCannon();
-  spawnBlocks();
+
   // const cannonDebugger = CannonDebugger(scene, world);
+  const start = document.getElementById('start');
+  const startClick = () => {
+    fadeOut('#mask');
+    spawnBlocks();
+    start.removeEventListener('click', startClick)
+  }
+
+  start.addEventListener('click', startClick)
 
   renderer.domElement.addEventListener('touchstart', () => {
     controllable.cannon.fire();
@@ -339,7 +384,8 @@ class Cannon {
   isReacting: boolean;
   ballMass = 1;
   ballSpeed = 3;
-  mobileTimer: any
+  timer: any;
+  autoRefresh = true
   constructor() {
     this.init();
   }
@@ -552,11 +598,12 @@ class Cannon {
     world.addBody(ballBody);
     scene.add(ballMesh);
     objectToUpdate.push({ body: ballBody, mesh: ballMesh });
-    if (isMobile()) {
-      clearTimeout(this.mobileTimer)
-      this.mobileTimer = setTimeout(() => {
+    if (this.autoRefresh) {
+      clearTimeout(this.timer)
+      this.timer = setTimeout(() => {
         reset();
-      }, 3000)
+      }, 6000)
+
     }
 
     playCannon();
