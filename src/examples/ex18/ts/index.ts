@@ -1,4 +1,4 @@
-import { AmbientLight, AxesHelper, BufferGeometry, Clock, PerspectiveCamera, PointLight, Scene, WebGLRenderer } from 'three';
+import { AmbientLight, AnimationMixer, AxesHelper, BufferGeometry, Clock, PerspectiveCamera, PointLight, Scene, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
@@ -10,6 +10,7 @@ const dracoLoader = new DRACOLoader();
 let resolve1: (value?: unknown) => void;
 let resolve2: (value?: unknown) => void;
 let resolve3: (value?: unknown) => void;
+let resolve4: (value?: unknown) => void;
 
 const duckModelLoaded = new Promise((res) => {
   resolve1 = res;
@@ -35,9 +36,17 @@ gltfLoader.load('../static/models/Duck/glTF-Draco/Duck.gltf', (gltf) => {
   resolve3(gltf)
 })
 
+const foxModelLoaded = new Promise((res) => {
+  resolve4 = res;
+});
+gltfLoader.load('../static/models/Fox/glTF/Fox.gltf', (gltf) => {
+  resolve4(gltf)
+})
+
 
 function main() {
-  const { scene, renderer, camera, clock, axis } = new RenderEnv();
+  let env: RenderEnv;
+  const { scene, renderer, camera, clock, axis } = env = new RenderEnv();
   duckModelLoaded.then((gltf: any) => {
     const duck = gltf?.scene?.children[0];
     duck.position.setY(1)
@@ -56,6 +65,23 @@ function main() {
     duck.scale.set(0.01, 0.01, 0.01)
     scene.add(duck)
   })
+
+
+  foxModelLoaded.then((gltf: any) => {
+    const fox = gltf?.scene;
+    fox.scale.set(0.01, 0.01, 0.01)
+    fox.position.setX(3)
+    scene.add(fox)
+    console.log(gltf)
+
+    const mixer = new AnimationMixer(gltf.scene);
+    mixer.clipAction(gltf.animations[2]).play()
+    let prevTime = 0;
+    env.frameListener = (time) => {
+      mixer.update(time - prevTime)
+      prevTime = time;
+    }
+  })
 }
 
 
@@ -65,6 +91,7 @@ class RenderEnv {
   camera: PerspectiveCamera;
   renderer: WebGLRenderer;
   clock: Clock;
+  frameListener: (time: number) => void = (time) => { }
   constructor() {
     this.init();
   }
@@ -87,7 +114,6 @@ class RenderEnv {
     pL.position.set(5, 5, 5)
     scene.add(camera, axis, aL, pL)
 
-
     document.body.appendChild(renderer.domElement);
     renderer.setClearColor(0x000000, 0) // 把背景色設置為透明
     renderer.setSize(window.innerWidth, window.innerHeight)
@@ -102,8 +128,8 @@ class RenderEnv {
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true;
 
-
     const tick = () => {
+      this.frameListener(clock.getElapsedTime())
       controls.update();
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
